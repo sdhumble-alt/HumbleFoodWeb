@@ -67,7 +67,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-
 .canvas-wrapper{position:relative;background:#ffffff;border:1px solid #d0d7e2;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.05);overflow:hidden;}
 #webCanvas{display:block;cursor:default;}
 #webCanvas.mode-connect{cursor:crosshair;}
-.copy-feedback{font-size:9.5pt;color:#2e7d32;font-weight:600;display:none;align-items:center;gap:4px;margin-top:4px;}
+.copy-feedback{font-size:9.5pt;color:#2e7d32;font-weight:600;display:none;align-items:center;justify-content:center;gap:4px;margin-top:4px;}
 .action-banner{background:#e8f0fe;border:1px solid #c2dbfe;border-radius:6px;padding:8px 10px;font-size:8.5pt;color:#1e429f;margin-bottom:12px;line-height:1.4;}
 
 .color-dot {display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; border: 1px solid rgba(0,0,0,0.2);}
@@ -82,7 +82,6 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-
       <div id="app-title">A Humble Food Web</div>
       <div id="app-subtitle">Clean Ecology Web Builder - Built by Steven Humble</div>
     </div>
-    <span class="toolbar-ver">V 2.0.0.</span>
   </div>
 
   <!-- SPLIT CONTENT -->
@@ -201,6 +200,20 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-
           </div>
         </div>
 
+        <!-- Export & App Info -->
+        <div style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
+          <div class="btn-row" style="justify-content: center; margin-top: 0;">
+            <button class="btn btn-primary" onclick="downloadPNG()"><i class="ti ti-download"></i> Download PNG</button>
+            <button class="btn btn-green" id="copyBtn" onclick="copyPNG()"><i class="ti ti-copy"></i> Copy to Clipboard</button>
+          </div>
+          <div style="margin-top: 8px; min-height: 20px;">
+            <span class="copy-feedback" id="copyFeedback"><i class="ti ti-check"></i> Copied ecosystem!</span>
+          </div>
+          <div style="margin-top: 10px; font-size: 8.5pt; color: #888; font-family: Arial, sans-serif;">
+            V 1.0.0 &mdash; 09-16-2026
+          </div>
+        </div>
+
       </div>
 
       <!-- RIGHT PANEL: Stage -->
@@ -208,12 +221,6 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-
         <div class="canvas-wrapper" id="canvasWrapper">
           <canvas id="webCanvas" width="800" height="560"></canvas>
         </div>
-
-        <div class="btn-row">
-          <button class="btn btn-primary" onclick="downloadPNG()"><i class="ti ti-download"></i> Download PNG</button>
-          <button class="btn btn-green" id="copyBtn" onclick="copyPNG()"><i class="ti ti-copy"></i> Copy to Clipboard</button>
-        </div>
-        <span class="copy-feedback" id="copyFeedback"><i class="ti ti-check"></i> Copied ecosystem to clipboard!</span>
       </div>
 
     </div>
