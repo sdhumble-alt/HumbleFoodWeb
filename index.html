@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A Humble Food Web</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.31.0/webfont/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-size:11pt;background:#f0f2f5;color:#1e2a3a;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+#app{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;background:#fff;}
+
+/* Top Header */
+#app-header{background:#1e2a3a;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid #12202e;}
+.header-titles{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;}
+#app-title{font-family:Georgia,'Times New Roman',serif;font-size:16px;font-weight:bold;color:#fff;letter-spacing:0.01em;white-space:nowrap;line-height:1.2;margin:0;padding:0;}
+#app-subtitle{font-size:10px;color:rgba(255,255,255,0.65);font-style:italic;white-space:nowrap;line-height:1.2;margin:0;padding:0;}
+.toolbar-ver{font-size:8pt;color:rgba(255,255,255,0.4);font-family:Arial,sans-serif;white-space:nowrap;margin-left:16px;}
+
+/* Split Layout */
+.content{display:flex;flex:1;overflow:hidden;}
+.split-layout{display:grid;grid-template-columns:minmax(330px,360px) 1fr;gap:18px;height:100%;width:100%;overflow:hidden;align-items:stretch;padding:16px;}
+.split-left{height:100%;overflow-y:auto;padding-right:6px;}
+.split-right{height:100%;overflow-y:auto;background:#f9fafc;border:1px solid #d0d7e2;border-radius:8px;padding:18px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:14px;}
+
+/* Cards & Option Groups */
+.opt-group{border:1px solid #bbbbbb;border-radius:8px;margin-bottom:14px;overflow:hidden;background:#ffffff;}
+.opt-group-header{background:#f5f5f5;padding:7px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #cccccc;}
+.opt-group-header-left{display:flex;align-items:center;gap:6px;}
+.opt-group-header i{font-size:14px;color:#666;}
+.opt-group-title{font-size:9pt;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.05em;}
+.opt-group-body{padding:12px;}
+
+/* Action Buttons */
+.action-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px;}
+.act-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 4px;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:6px;cursor:pointer;font-size:8.5pt;font-weight:600;color:#334155;transition:all .12s;text-align:center;}
+.act-btn:hover:not(:disabled){background:#eef3fb;border-color:#3266ad;color:#1e429f;}
+.act-btn:disabled{opacity:0.4;cursor:not-allowed;}
+.act-btn i{font-size:18px;}
+.act-btn.active-mode {background:#eef3fb;border-color:#3266ad;color:#1e429f;box-shadow:0 0 0 2px rgba(50,102,173,0.15);}
+
+/* Inputs & Form Elements */
+input[type=text],select{border:1.5px solid #aaaaaa;border-radius:6px;padding:6px 9px;font-size:10pt;font-family:Arial,sans-serif;background:#ffffff;color:#222222;outline:none;transition:border-color .15s,box-shadow .15s;min-width:0;width:100%;box-sizing:border-box;}
+input[type=text]:hover,select:hover{border-color:#777777;}
+input[type=text]:focus,select:focus{border-color:#3266ad;border-width:2px;box-shadow:0 0 0 3px rgba(50,102,173,0.15);}
+.field-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.field-row label{font-size:9.5pt;color:#555555;font-weight:600;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.toggle-row{display:flex;align-items:center;gap:7px;margin-bottom:6px;}
+.toggle-row label{font-size:10pt;color:#222;cursor:pointer;}
+input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-color:#3266ad;}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;border-radius:6px;padding:6px 12px;font-size:9.5pt;font-family:Arial,sans-serif;font-weight:600;cursor:pointer;transition:all .12s;border:none;}
+.btn-primary{background:#3266ad;color:#fff;}
+.btn-primary:hover{background:#185fa5;}
+.btn-secondary{background:#ffffff;color:#333;border:1.5px solid #aaaaaa;}
+.btn-secondary:hover{background:#f0f0f0;border-color:#777;}
+.btn-green{background:#1a7a3a;color:#fff;}
+.btn-green:hover{background:#145e2c;}
+.btn-danger{background:#b00020;color:#fff;}
+.btn-danger:hover{background:#8e001a;}
+.btn-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;justify-content:center;}
+
+/* Canvas Stage */
+.canvas-wrapper{position:relative;background:#ffffff;border:1px solid #d0d7e2;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,0.05);overflow:hidden;}
+#webCanvas{display:block;cursor:default;}
+#webCanvas.mode-connect{cursor:crosshair;}
+.copy-feedback{font-size:9.5pt;color:#2e7d32;font-weight:600;display:none;align-items:center;gap:4px;margin-top:4px;}
+.action-banner{background:#e8f0fe;border:1px solid #c2dbfe;border-radius:6px;padding:8px 10px;font-size:8.5pt;color:#1e429f;margin-bottom:12px;line-height:1.4;}
+
+.color-dot {display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; border: 1px solid rgba(0,0,0,0.2);}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TOP HEADER -->
+  <div id="app-header">
+    <div class="header-titles">
+      <div id="app-title">A Humble Food Web</div>
+      <div id="app-subtitle">Clean Ecology Web Builder - Built by Steven Humble</div>
+    </div>
+    <span class="toolbar-ver">V 1.0.0.</span>
+  </div>
+
+  <!-- SPLIT CONTENT -->
+  <div class="content">
+    <div class="split-layout">
+      
+      <!-- LEFT PANEL -->
+      <div class="split-left" id="controls-panel">
+
+        <!-- Global Tools -->
+        <div class="opt-group">
+          <div class="opt-group-header">
+            <div class="opt-group-header-left"><i class="ti ti-tools"></i><span class="opt-group-title">Web Actions</span></div>
+          </div>
+          <div class="opt-group-body">
+            <div class="action-grid">
+              <button class="act-btn" id="btnAddNode" onclick="actionAddNode()"><i class="ti ti-leaf"></i> Add Organism</button>
+              <button class="act-btn" id="btnConnect" onclick="toggleConnectMode()"><i class="ti ti-arrow-up-right"></i> Add Energy Flow</button>
+            </div>
+            <div class="action-banner" id="connect-banner" style="display:none; margin-top:0;">
+              <i class="ti ti-info-circle" style="vertical-align:-1px;"></i> <b>Connection Mode:</b> Click the organism being <b>eaten</b>, then click the <b>eater</b> to draw energy flow.
+            </div>
+          </div>
+        </div>
+
+        <!-- Selected Node Inspector -->
+        <div class="opt-group">
+          <div class="opt-group-header">
+            <div class="opt-group-header-left"><i class="ti ti-adjustments"></i><span class="opt-group-title">Organism Properties</span></div>
+          </div>
+          <div class="opt-group-body">
+            <div id="inspector-content" style="display:none;">
+              <div class="field-row">
+                <label>Organism Name</label>
+                <input type="text" id="nodeName" placeholder="e.g., Hawk, Grass" oninput="updateSelectedAttributes()">
+              </div>
+              <div class="field-row">
+                <label>Trophic Level</label>
+                <select id="nodeRole" onchange="updateSelectedAttributes()">
+                  <option value="producer">Producer (Autotroph)</option>
+                  <option value="primary">Primary Consumer</option>
+                  <option value="secondary">Secondary Consumer</option>
+                  <option value="tertiary">Tertiary / Apex Predator</option>
+                  <option value="decomposer">Decomposer / Detritivore</option>
+                </select>
+              </div>
+              
+              <div class="btn-row" style="margin-top:14px; justify-content:flex-start;">
+                <button class="btn btn-secondary" onclick="actionDisconnect()" id="btnDisconnect"><i class="ti ti-unlink"></i> Remove All Flows</button>
+                <button class="btn btn-danger" onclick="actionDeleteSelected()" id="btnDeleteMember" style="background:#b00020; color:#fff; border:none;"><i class="ti ti-trash"></i> Delete</button>
+              </div>
+            </div>
+            <div id="inspector-empty" style="color:#777; font-size:9.5pt; font-style:italic; text-align:center; padding:10px 0;">
+              No organism selected. Click an organism on the canvas to edit it.
+            </div>
+          </div>
+        </div>
+
+        <!-- Global Settings -->
+        <div class="opt-group">
+          <div class="opt-group-header">
+            <div class="opt-group-header-left"><i class="ti ti-settings"></i><span class="opt-group-title">Chart Options</span></div>
+          </div>
+          <div class="opt-group-body">
+            <div class="field-row">
+              <label>Diagram Title</label>
+              <input type="text" id="chartTitle" value="" placeholder="e.g., Forest Ecosystem" oninput="render()">
+            </div>
+            <div class="grid-2">
+              <div class="toggle-row">
+                <input type="checkbox" id="showLegend" checked onchange="render()">
+                <label for="showLegend">Show Key</label>
+              </div>
+              <div class="toggle-row">
+                <input type="checkbox" id="straightArrows" onchange="render()">
+                <label for="straightArrows">Straight Lines</label>
+              </div>
+            </div>
+            <div class="btn-row" style="justify-content:flex-start; margin-top:10px;">
+              <button class="btn btn-secondary" onclick="loadPreset('chain')"><i class="ti ti-link"></i> Sample Chain</button>
+              <button class="btn btn-secondary" onclick="loadPreset('web')"><i class="ti ti-spider"></i> Sample Web</button>
+              <button class="btn btn-secondary" onclick="clearWeb()"><i class="ti ti-rotate-clockwise"></i> Clear</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT PANEL: Stage -->
+      <div class="split-right">
+        <div class="canvas-wrapper" id="canvasWrapper">
+          <canvas id="webCanvas" width="800" height="560"></canvas>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="downloadPNG()"><i class="ti ti-download"></i> Download PNG</button>
+          <button class="btn btn-green" id="copyBtn" onclick="copyPNG()"><i class="ti ti-copy"></i> Copy to Clipboard</button>
+        </div>
+        <span class="copy-feedback" id="copyFeedback"><i class="ti ti-check"></i> Copied ecosystem to clipboard!</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ════════════════════════════════════════════════
+//  DATA STATE 
+// ════════════════════════════════════════════════
+let nodes = [];
+let edges = []; // { sourceId, targetId }
+let nextId = 1;
+
+let selectedId = null;
+let dragNode = null;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+
+let isConnectingMode = false;
+let connectSourceId = null;
+let mouseX = 0;
+let mouseY = 0;
+
+const NODE_RADIUS = 38;
+const canvas = document.getElementById('webCanvas');
+const ctx = canvas.getContext('2d');
+
+const ROLE_COLORS = {
+  'producer': { bg: '#e8f5e9', border: '#2e7d32', text: '#1b5e20', label: 'Producer' },
+  'primary': { bg: '#e3f2fd', border: '#1565c0', text: '#0d47a1', label: 'Primary Consumer' },
+  'secondary': { bg: '#fff3e0', border: '#ef6c00', text: '#e65100', label: 'Secondary Consumer' },
+  'tertiary': { bg: '#ffebee', border: '#c62828', text: '#b71c1c', label: 'Tertiary Consumer' },
+  'decomposer': { bg: '#efebe9', border: '#5d4037', text: '#3e2723', label: 'Decomposer' }
+};
+
+/* ════════════════════════════════════════════════
+   CORE DATA FUNCTIONS
+   ════════════════════════════════════════════════ */
+function createNode(name, role, x, y) {
+  const node = { id: nextId++, name, role, x, y };
+  nodes.push(node);
+  return node;
+}
+
+function addEdge(sourceId, targetId) {
+  // Prevent self-loop and duplicate edges
+  if (sourceId === targetId) return;
+  const exists = edges.some(e => e.sourceId === sourceId && e.targetId === targetId);
+  if (!exists) {
+    edges.push({ sourceId, targetId });
+  }
+}
+
+function deleteNode(id) {
+  nodes = nodes.filter(n => n.id !== id);
+  edges = edges.filter(e => e.sourceId !== id && e.targetId !== id);
+  if (selectedId === id) selectNode(null);
+  render();
+}
+
+function deleteEdgesFromNode(id) {
+  edges = edges.filter(e => e.sourceId !== id && e.targetId !== id);
+  render();
+}
+
+/* ════════════════════════════════════════════════
+   USER ACTIONS
+   ════════════════════════════════════════════════ */
+function actionAddNode() {
+  const cx = 100 + (Math.random() * 50);
+  const cy = 100 + (Math.random() * 50);
+  const node = createNode("New Organism", "primary", cx, cy);
+  
+  if (isConnectingMode) toggleConnectMode();
+  selectNode(node.id);
+  render();
+}
+
+function toggleConnectMode() {
+  isConnectingMode = !isConnectingMode;
+  connectSourceId = null;
+  const btn = document.getElementById('btnConnect');
+  const banner = document.getElementById('connect-banner');
+  
+  if (isConnectingMode) {
+    btn.classList.add('active-mode');
+    banner.style.display = 'block';
+    canvas.classList.add('mode-connect');
+    selectNode(null); // Deselect to focus on connecting
+  } else {
+    btn.classList.remove('active-mode');
+    banner.style.display = 'none';
+    canvas.classList.remove('mode-connect');
+  }
+  render();
+}
+
+function actionDeleteSelected() {
+  if (selectedId) {
+    deleteNode(selectedId);
+  }
+}
+
+function actionDisconnect() {
+  if (selectedId) {
+    deleteEdgesFromNode(selectedId);
+  }
+}
+
+function selectNode(id) {
+  selectedId = id;
+  const insp = document.getElementById('inspector-content');
+  const empty = document.getElementById('inspector-empty');
+
+  if (!id) {
+    insp.style.display = 'none';
+    empty.style.display = 'block';
+    render();
+    return;
+  }
+
+  const n = nodes.find(x => x.id === id);
+  if (!n) return;
+
+  insp.style.display = 'block';
+  empty.style.display = 'none';
+
+  document.getElementById('nodeName').value = n.name;
+  document.getElementById('nodeRole').value = n.role;
+
+  render();
+}
+
+function updateSelectedAttributes() {
+  if (!selectedId) return;
+  const n = nodes.find(x => x.id === selectedId);
+  if (!n) return;
+
+  n.name = document.getElementById('nodeName').value.trim();
+  n.role = document.getElementById('nodeRole').value;
+  render();
+}
+
+/* ════════════════════════════════════════════════
+   CANVAS INTERACTION
+   ════════════════════════════════════════════════ */
+function getPointerPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return {
+    x: (e.clientX - rect.left) * scaleX,
+    y: (e.clientY - rect.top) * scaleY
+  };
+}
+
+function getNodeAtPoint(x, y) {
+  // Reverse loop to grab topmost node
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    const dist = Math.hypot(n.x - x, n.y - y);
+    if (dist <= NODE_RADIUS) {
+      return n;
+    }
+  }
+  return null;
+}
+
+canvas.addEventListener('mousedown', e => {
+  const pos = getPointerPos(e);
+  const hit = getNodeAtPoint(pos.x, pos.y);
+
+  if (isConnectingMode) {
+    if (hit) {
+      if (!connectSourceId) {
+        connectSourceId = hit.id;
+      } else {
+        addEdge(connectSourceId, hit.id);
+        connectSourceId = null; // Reset for next connection
+      }
+    } else {
+      // Clicked empty space, cancel current connection
+      connectSourceId = null;
+    }
+    render();
+    return;
+  }
+
+  // Normal Selection / Drag mode
+  if (hit) {
+    selectNode(hit.id);
+    dragNode = hit;
+    dragOffsetX = hit.x - pos.x;
+    dragOffsetY = hit.y - pos.y;
+  } else {
+    selectNode(null);
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  const pos = getPointerPos(e);
+  mouseX = pos.x;
+  mouseY = pos.y;
+
+  if (dragNode) {
+    dragNode.x = pos.x + dragOffsetX;
+    dragNode.y = pos.y + dragOffsetY;
+    
+    // Bounds checking
+    dragNode.x = Math.max(NODE_RADIUS, Math.min(canvas.width - NODE_RADIUS, dragNode.x));
+    dragNode.y = Math.max(NODE_RADIUS, Math.min(canvas.height - NODE_RADIUS, dragNode.y));
+    
+    render();
+  } else if (isConnectingMode && connectSourceId) {
+    // Redraw to show dynamic connection line
+    render();
+  }
+});
+
+canvas.addEventListener('mouseup', () => {
+  dragNode = null;
+});
+
+canvas.addEventListener('mouseleave', () => {
+  dragNode = null;
+  if (isConnectingMode && connectSourceId) {
+    render();
+  }
+});
+
+/* ════════════════════════════════════════════════
+   CANVAS RENDERING
+   ════════════════════════════════════════════════ */
+function drawArrow(sourceX, sourceY, targetX, targetY, isStraight) {
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+  const dist = Math.hypot(dx, dy);
+  
+  if (dist <= NODE_RADIUS * 2) return; // Too close
+
+  // Calculate edges of the nodes
+  const angle = Math.atan2(dy, dx);
+  const startX = sourceX + NODE_RADIUS * Math.cos(angle);
+  const startY = sourceY + NODE_RADIUS * Math.sin(angle);
+  
+  // Back up slightly from target edge for the arrowhead
+  const endX = targetX - (NODE_RADIUS + 2) * Math.cos(angle);
+  const endY = targetY - (NODE_RADIUS + 2) * Math.sin(angle);
+
+  ctx.strokeStyle = '#475569';
+  ctx.lineWidth = 2.5;
+
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
+
+  if (isStraight) {
+    ctx.lineTo(endX, endY);
+  } else {
+    // Slight curve to make reciprocal connections clearer
+    const midX = (startX + endX) / 2;
+    const midY = (startY + endY) / 2;
+    const offset = Math.min(dist * 0.15, 40);
+    const cpX = midX - offset * Math.sin(angle);
+    const cpY = midY + offset * Math.cos(angle);
+    ctx.quadraticCurveTo(cpX, cpY, endX, endY);
+    
+    // Recalculate angle at the end point for the arrowhead
+    const tangentAngle = Math.atan2(endY - cpY, endX - cpX);
+    drawArrowHead(endX, endY, tangentAngle);
+    ctx.stroke();
+    return;
+  }
+
+  ctx.stroke();
+  drawArrowHead(endX, endY, angle);
+}
+
+function drawArrowHead(x, y, angle) {
+  const headLen = 12;
+  ctx.fillStyle = '#475569';
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x - headLen * Math.cos(angle - Math.PI / 6), y - headLen * Math.sin(angle - Math.PI / 6));
+  ctx.lineTo(x - headLen * Math.cos(angle + Math.PI / 6), y - headLen * Math.sin(angle + Math.PI / 6));
+  ctx.closePath();
+  ctx.fill();
+}
+
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const title = document.getElementById('chartTitle').value.trim();
+  if (title) {
+    ctx.font = 'bold 16px Georgia, "Times New Roman", serif';
+    ctx.fillStyle = '#1e2a3a';
+    ctx.textAlign = 'center';
+    ctx.fillText(title, canvas.width / 2, 28);
+  }
+
+  const isStraight = document.getElementById('straightArrows').checked;
+
+  // 1. Draw Edges
+  edges.forEach(e => {
+    const s = nodes.find(n => n.id === e.sourceId);
+    const t = nodes.find(n => n.id === e.targetId);
+    if (s && t) drawArrow(s.x, s.y, t.x, t.y, isStraight);
+  });
+
+  // Dynamic connecting line
+  if (isConnectingMode && connectSourceId) {
+    const s = nodes.find(n => n.id === connectSourceId);
+    if (s) {
+      ctx.strokeStyle = '#3266ad';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(mouseX, mouseY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // 2. Draw Nodes
+  nodes.forEach(n => {
+    const colors = ROLE_COLORS[n.role] || ROLE_COLORS['producer'];
+    
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, NODE_RADIUS, 0, Math.PI * 2);
+    ctx.fillStyle = colors.bg;
+    ctx.fill();
+
+    ctx.lineWidth = (n.id === selectedId || n.id === connectSourceId) ? 3.5 : 2;
+    ctx.strokeStyle = (n.id === selectedId || n.id === connectSourceId) ? '#d32f2f' : colors.border;
+    ctx.stroke();
+
+    // Node Text (Name)
+    ctx.fillStyle = colors.text;
+    ctx.font = 'bold 10.5px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Auto wrap simple words
+    const words = n.name.split(' ');
+    if (words.length > 1 && n.name.length > 10) {
+      ctx.fillText(words.slice(0, Math.ceil(words.length/2)).join(' '), n.x, n.y - 6);
+      ctx.fillText(words.slice(Math.ceil(words.length/2)).join(' '), n.x, n.y + 6);
+    } else {
+      ctx.fillText(n.name, n.x, n.y);
+    }
+  });
+
+  // 3. Legend
+  if (document.getElementById('showLegend').checked) {
+    drawLegendBox();
+  }
+}
+
+function drawLegendBox() {
+  const kw = 160;
+  const kh = 115;
+  const kx = canvas.width - kw - 16;
+  const ky = canvas.height - kh - 16;
+  
+  ctx.save();
+  ctx.fillStyle = '#f8fafc';
+  ctx.fillRect(kx, ky, kw, kh);
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(kx, ky, kw, kh);
+
+  ctx.fillStyle = '#475569';
+  ctx.font = 'bold 9px system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('TROPHIC KEY', kx + 10, ky + 14);
+
+  const roles = ['producer', 'primary', 'secondary', 'tertiary', 'decomposer'];
+  
+  roles.forEach((r, idx) => {
+    const c = ROLE_COLORS[r];
+    const itemY = ky + 32 + (idx * 16);
+    
+    ctx.beginPath();
+    ctx.arc(kx + 16, itemY - 3, 5, 0, Math.PI * 2);
+    ctx.fillStyle = c.bg;
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = c.border;
+    ctx.stroke();
+
+    ctx.fillStyle = '#334155';
+    ctx.font = '9px system-ui, sans-serif';
+    ctx.fillText(c.label, kx + 28, itemY);
+  });
+
+  ctx.restore();
+}
+
+/* ════════════════════════════════════════════════
+   PRESET LOADERS & EXPORT
+   ════════════════════════════════════════════════ */
+function loadPreset(type) {
+  nodes = [];
+  edges = [];
+  nextId = 1;
+  selectedId = null;
+  if (isConnectingMode) toggleConnectMode();
+  document.getElementById('chartTitle').value = '';
+
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+
+  if (type === 'chain') {
+    document.getElementById('chartTitle').value = 'Simple Food Chain';
+    const n1 = createNode('Grass', 'producer', cx - 200, cy);
+    const n2 = createNode('Rabbit', 'primary', cx, cy);
+    const n3 = createNode('Fox', 'secondary', cx + 200, cy);
+    addEdge(n1.id, n2.id);
+    addEdge(n2.id, n3.id);
+  } else if (type === 'web') {
+    document.getElementById('chartTitle').value = 'Forest Food Web';
+    const grass = createNode('Grasses', 'producer', cx - 180, cy + 100);
+    const berry = createNode('Berry Bush', 'producer', cx + 180, cy + 100);
+    
+    const mouse = createNode('Mouse', 'primary', cx - 100, cy - 20);
+    const deer = createNode('Deer', 'primary', cx + 100, cy - 10);
+    
+    const snake = createNode('Snake', 'secondary', cx - 140, cy - 140);
+    const hawk = createNode('Hawk', 'tertiary', cx + 50, cy - 170);
+    
+    const fungi = createNode('Fungi', 'decomposer', cx, cy + 170);
+
+    // Energy flows (Eaten -> Eater)
+    addEdge(grass.id, mouse.id);
+    addEdge(grass.id, deer.id);
+    addEdge(berry.id, mouse.id);
+    addEdge(berry.id, deer.id);
+    
+    addEdge(mouse.id, snake.id);
+    addEdge(mouse.id, hawk.id);
+    addEdge(snake.id, hawk.id);
+
+    // Decay flows
+    addEdge(deer.id, fungi.id);
+    addEdge(grass.id, fungi.id);
+  }
+
+  selectNode(null);
+  render();
+}
+
+function clearWeb() {
+  if (confirm('Clear entire food web?')) {
+    nodes = [];
+    edges = [];
+    selectNode(null);
+    render();
+  }
+}
+
+function getTimestamp() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+}
+
+function downloadPNG() {
+  const a = document.createElement('a');
+  a.download = `FoodWeb_${getTimestamp()}.png`;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+async function copyPNG() {
+  const btn = document.getElementById('copyBtn');
+  const fb = document.getElementById('copyFeedback');
+  try {
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas toBlob failed')), 'image/png');
+    });
+    if (navigator.clipboard && window.ClipboardItem) {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      fb.style.display = 'inline-flex';
+      btn.style.background = '#145e2c';
+      setTimeout(() => {
+        fb.style.display = 'none';
+        btn.style.background = '#1a7a3a';
+      }, 2500);
+      return;
+    }
+    throw new Error('Clipboard API unavailable');
+  } catch (err) {
+    downloadPNG(); // Fallback
+  }
+}
+
+window.onload = () => {
+  loadPreset('web');
+};
+</script>
+</body>
+</html>
