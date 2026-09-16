@@ -39,12 +39,14 @@ body{font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-size:1
 .act-btn.active-mode {background:#eef3fb;border-color:#3266ad;color:#1e429f;box-shadow:0 0 0 2px rgba(50,102,173,0.15);}
 
 /* Inputs & Form Elements */
-input[type=text],select{border:1.5px solid #aaaaaa;border-radius:6px;padding:6px 9px;font-size:10pt;font-family:Arial,sans-serif;background:#ffffff;color:#222222;outline:none;transition:border-color .15s,box-shadow .15s;min-width:0;width:100%;box-sizing:border-box;}
-input[type=text]:hover,select:hover{border-color:#777777;}
-input[type=text]:focus,select:focus{border-color:#3266ad;border-width:2px;box-shadow:0 0 0 3px rgba(50,102,173,0.15);}
+input[type=text],input[type=number],select{border:1.5px solid #aaaaaa;border-radius:6px;padding:6px 9px;font-size:10pt;font-family:Arial,sans-serif;background:#ffffff;color:#222222;outline:none;transition:border-color .15s,box-shadow .15s;min-width:0;width:100%;box-sizing:border-box;}
+input[type=file]{font-family:Arial,sans-serif;font-size:9.5pt;color:#222;width:100%;}
+input[type=text]:hover,input[type=number]:hover,select:hover{border-color:#777777;}
+input[type=text]:focus,input[type=number]:focus,select:focus{border-color:#3266ad;border-width:2px;box-shadow:0 0 0 3px rgba(50,102,173,0.15);}
 .field-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
 .field-row label{font-size:9.5pt;color:#555555;font-weight:600;}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
 .toggle-row{display:flex;align-items:center;gap:7px;margin-bottom:6px;}
 .toggle-row label{font-size:10pt;color:#222;cursor:pointer;}
 input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-color:#3266ad;}
@@ -80,7 +82,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-
       <div id="app-title">A Humble Food Web</div>
       <div id="app-subtitle">Clean Ecology Web Builder - Built by Steven Humble</div>
     </div>
-    <span class="toolbar-ver">V 1.0.0.</span>
+    <span class="toolbar-ver">V 1.9.0.</span>
   </div>
 
   <!-- SPLIT CONTENT -->
@@ -101,7 +103,11 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-
               <button class="act-btn" id="btnConnect" onclick="toggleConnectMode()"><i class="ti ti-arrow-up-right"></i> Add Energy Flow</button>
             </div>
             <div class="action-banner" id="connect-banner" style="display:none; margin-top:0;">
-              <i class="ti ti-info-circle" style="vertical-align:-1px;"></i> <b>Connection Mode:</b> Click the organism being <b>eaten</b>, then click the <b>eater</b> to draw energy flow.
+              <i class="ti ti-info-circle" style="vertical-align:-1px;"></i> <b>Connection Mode:</b> Click the organism being <b>eaten</b>, then click the <b>eater</b> to draw energy flow. (Click the same organism twice for a self-loop).
+              <div class="toggle-row" style="margin-top: 8px; margin-bottom: 0;">
+                <input type="checkbox" id="lockConnectMode">
+                <label for="lockConnectMode" style="font-weight: 600; color: #1e429f;">Keep connection mode active</label>
+              </div>
             </div>
           </div>
         </div>
@@ -118,14 +124,20 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-
                 <input type="text" id="nodeName" placeholder="e.g., Hawk, Grass" oninput="updateSelectedAttributes()">
               </div>
               <div class="field-row">
-                <label>Trophic Level</label>
+                <label>Trophic Level (Color Coding)</label>
                 <select id="nodeRole" onchange="updateSelectedAttributes()">
-                  <option value="producer">Producer (Autotroph)</option>
+                  <option value="none">None</option>
+                  <option value="producer">Producer</option>
                   <option value="primary">Primary Consumer</option>
                   <option value="secondary">Secondary Consumer</option>
-                  <option value="tertiary">Tertiary / Apex Predator</option>
-                  <option value="decomposer">Decomposer / Detritivore</option>
+                  <option value="tertiary">Tertiary Consumer</option>
+                  <option value="decomposer">Decomposer</option>
                 </select>
+              </div>
+              <div class="field-row" style="margin-top: 6px;">
+                <label>Image (Optional)</label>
+                <input type="file" id="nodeImageInput" accept="image/*" style="padding: 4px;">
+                <button class="btn btn-secondary" onclick="actionRemoveImage()" id="btnRemoveImage" style="display:none; margin-top:4px; font-size: 8.5pt;"><i class="ti ti-photo-off"></i> Remove Image</button>
               </div>
               
               <div class="btn-row" style="margin-top:14px; justify-content:flex-start;">
@@ -149,16 +161,36 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-
               <label>Diagram Title</label>
               <input type="text" id="chartTitle" value="" placeholder="e.g., Forest Ecosystem" oninput="render()">
             </div>
+            
+            <div class="field-row">
+              <label>Line Style</label>
+              <select id="lineStyle" onchange="render()">
+                <option value="straight" selected>Straight Lines</option>
+                <option value="curved">Curved Lines</option>
+              </select>
+            </div>
             <div class="grid-2">
-              <div class="toggle-row">
-                <input type="checkbox" id="showLegend" checked onchange="render()">
-                <label for="showLegend">Show Key</label>
+              <div class="field-row">
+                <label>Node Size</label>
+                <input type="number" id="nodeSizeInput" value="76" min="30" max="250" step="2" oninput="updateNodeSize()">
               </div>
-              <div class="toggle-row">
-                <input type="checkbox" id="straightArrows" onchange="render()">
-                <label for="straightArrows">Straight Lines</label>
+              <div class="field-row">
+                <label>Font Size</label>
+                <input type="number" id="fontSizeInput" value="11" min="6" max="36" step="1" oninput="render()">
               </div>
             </div>
+            
+            <div class="grid-2" style="margin-top:4px;">
+              <div class="toggle-row">
+                <input type="checkbox" id="showTrophicLevels" onchange="toggleTrophicLevels()">
+                <label for="showTrophicLevels">Color Trophic Levels</label>
+              </div>
+              <div class="toggle-row" id="legendContainer" style="display:none;">
+                <input type="checkbox" id="showLegend" onchange="render()">
+                <label for="showLegend">Show Key</label>
+              </div>
+            </div>
+            
             <div class="btn-row" style="justify-content:flex-start; margin-top:10px;">
               <button class="btn btn-secondary" onclick="loadPreset('chain')"><i class="ti ti-link"></i> Sample Chain</button>
               <button class="btn btn-secondary" onclick="loadPreset('web')"><i class="ti ti-spider"></i> Sample Web</button>
@@ -206,11 +238,14 @@ let connectSourceId = null;
 let mouseX = 0;
 let mouseY = 0;
 
-const NODE_RADIUS = 38;
+let nodeSize = 76;
+let halfSize = nodeSize / 2;
+
 const canvas = document.getElementById('webCanvas');
 const ctx = canvas.getContext('2d');
 
 const ROLE_COLORS = {
+  'none': { bg: '#f1f5f9', border: '#94a3b8', text: '#334155', label: 'None' },
   'producer': { bg: '#e8f5e9', border: '#2e7d32', text: '#1b5e20', label: 'Producer' },
   'primary': { bg: '#e3f2fd', border: '#1565c0', text: '#0d47a1', label: 'Primary Consumer' },
   'secondary': { bg: '#fff3e0', border: '#ef6c00', text: '#e65100', label: 'Secondary Consumer' },
@@ -221,15 +256,34 @@ const ROLE_COLORS = {
 /* ════════════════════════════════════════════════
    CORE DATA FUNCTIONS
    ════════════════════════════════════════════════ */
+function updateNodeSize() {
+  nodeSize = parseInt(document.getElementById('nodeSizeInput').value) || 76;
+  halfSize = nodeSize / 2;
+  render();
+}
+
+function toggleTrophicLevels() {
+  const showTrophic = document.getElementById('showTrophicLevels').checked;
+  const legendContainer = document.getElementById('legendContainer');
+  const showLegendBox = document.getElementById('showLegend');
+  
+  if (showTrophic) {
+    legendContainer.style.display = 'flex';
+    showLegendBox.checked = true;
+  } else {
+    legendContainer.style.display = 'none';
+    showLegendBox.checked = false;
+  }
+  render();
+}
+
 function createNode(name, role, x, y) {
-  const node = { id: nextId++, name, role, x, y };
+  const node = { id: nextId++, name, role, x, y, imgObj: null };
   nodes.push(node);
   return node;
 }
 
 function addEdge(sourceId, targetId) {
-  // Prevent self-loop and duplicate edges
-  if (sourceId === targetId) return;
   const exists = edges.some(e => e.sourceId === sourceId && e.targetId === targetId);
   if (!exists) {
     edges.push({ sourceId, targetId });
@@ -254,7 +308,7 @@ function deleteEdgesFromNode(id) {
 function actionAddNode() {
   const cx = 100 + (Math.random() * 50);
   const cy = 100 + (Math.random() * 50);
-  const node = createNode("New Organism", "primary", cx, cy);
+  const node = createNode("New Organism", "none", cx, cy);
   
   if (isConnectingMode) toggleConnectMode();
   selectNode(node.id);
@@ -292,6 +346,17 @@ function actionDisconnect() {
   }
 }
 
+function actionRemoveImage() {
+  if (!selectedId) return;
+  const n = nodes.find(x => x.id === selectedId);
+  if (n) {
+    n.imgObj = null;
+    document.getElementById('nodeImageInput').value = '';
+    render();
+    selectNode(selectedId);
+  }
+}
+
 function selectNode(id) {
   selectedId = id;
   const insp = document.getElementById('inspector-content');
@@ -312,6 +377,9 @@ function selectNode(id) {
 
   document.getElementById('nodeName').value = n.name;
   document.getElementById('nodeRole').value = n.role;
+  
+  document.getElementById('nodeImageInput').value = ''; 
+  document.getElementById('btnRemoveImage').style.display = n.imgObj ? 'inline-flex' : 'none';
 
   render();
 }
@@ -325,6 +393,27 @@ function updateSelectedAttributes() {
   n.role = document.getElementById('nodeRole').value;
   render();
 }
+
+document.getElementById('nodeImageInput').addEventListener('change', e => {
+  if (!selectedId) return;
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = event => {
+    const img = new Image();
+    img.onload = () => {
+      const n = nodes.find(x => x.id === selectedId);
+      if (n) {
+        n.imgObj = img;
+        render();
+        selectNode(selectedId); // Refresh UI to show the remove button
+      }
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+});
 
 /* ════════════════════════════════════════════════
    CANVAS INTERACTION
@@ -343,8 +432,8 @@ function getNodeAtPoint(x, y) {
   // Reverse loop to grab topmost node
   for (let i = nodes.length - 1; i >= 0; i--) {
     const n = nodes[i];
-    const dist = Math.hypot(n.x - x, n.y - y);
-    if (dist <= NODE_RADIUS) {
+    const inBounds = Math.abs(n.x - x) <= halfSize && Math.abs(n.y - y) <= halfSize;
+    if (inBounds) {
       return n;
     }
   }
@@ -362,10 +451,18 @@ canvas.addEventListener('mousedown', e => {
       } else {
         addEdge(connectSourceId, hit.id);
         connectSourceId = null; // Reset for next connection
+        
+        // Turn off mode automatically unless the lock checkbox is checked
+        if (!document.getElementById('lockConnectMode').checked) {
+          toggleConnectMode();
+        }
       }
     } else {
       // Clicked empty space, cancel current connection
       connectSourceId = null;
+      if (!document.getElementById('lockConnectMode').checked) {
+        toggleConnectMode();
+      }
     }
     render();
     return;
@@ -391,9 +488,9 @@ canvas.addEventListener('mousemove', e => {
     dragNode.x = pos.x + dragOffsetX;
     dragNode.y = pos.y + dragOffsetY;
     
-    // Bounds checking
-    dragNode.x = Math.max(NODE_RADIUS, Math.min(canvas.width - NODE_RADIUS, dragNode.x));
-    dragNode.y = Math.max(NODE_RADIUS, Math.min(canvas.height - NODE_RADIUS, dragNode.y));
+    // Bounds checking based on current halfSize
+    dragNode.x = Math.max(halfSize, Math.min(canvas.width - halfSize, dragNode.x));
+    dragNode.y = Math.max(halfSize, Math.min(canvas.height - halfSize, dragNode.y));
     
     render();
   } else if (isConnectingMode && connectSourceId) {
@@ -416,23 +513,68 @@ canvas.addEventListener('mouseleave', () => {
 /* ════════════════════════════════════════════════
    CANVAS RENDERING
    ════════════════════════════════════════════════ */
-function drawArrow(sourceX, sourceY, targetX, targetY, isStraight) {
+   
+function getSquareIntersection(sourceX, sourceY, targetX, targetY, padding) {
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+  if (dx === 0 && dy === 0) return {x: sourceX, y: sourceY};
+  
+  const paddedHalfSize = halfSize + padding;
+  
+  const scaleX = Math.abs(dx) > 0 ? paddedHalfSize / Math.abs(dx) : Infinity;
+  const scaleY = Math.abs(dy) > 0 ? paddedHalfSize / Math.abs(dy) : Infinity;
+  const scale = Math.min(scaleX, scaleY);
+  
+  return {
+    x: sourceX + dx * scale,
+    y: sourceY + dy * scale
+  };
+}
+
+function drawSelfLoop(n, strokeColor) {
+  const startX = n.x + halfSize * 0.4;
+  const startY = n.y - halfSize;
+  
+  const endX = n.x + halfSize + 3; // +3 for arrowhead clearance
+  const endY = n.y - halfSize * 0.4;
+  
+  const loopSize = Math.max(40, nodeSize * 0.6);
+  
+  const cp1X = startX;
+  const cp1Y = startY - loopSize;
+  const cp2X = endX + loopSize;
+  const cp2Y = endY;
+  
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = 2.5;
+  
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
+  ctx.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY);
+  ctx.stroke();
+  
+  const angle = Math.atan2(endY - cp2Y, endX - cp2X);
+  drawArrowHead(endX, endY, angle, strokeColor);
+}
+
+function drawArrow(sourceX, sourceY, targetX, targetY, isStraight, strokeColor) {
   const dx = targetX - sourceX;
   const dy = targetY - sourceY;
   const dist = Math.hypot(dx, dy);
   
-  if (dist <= NODE_RADIUS * 2) return; // Too close
+  if (dist <= nodeSize) return; // Too close
 
-  // Calculate edges of the nodes
-  const angle = Math.atan2(dy, dx);
-  const startX = sourceX + NODE_RADIUS * Math.cos(angle);
-  const startY = sourceY + NODE_RADIUS * Math.sin(angle);
+  const startPoint = getSquareIntersection(sourceX, sourceY, targetX, targetY, 0);
+  const endPoint = getSquareIntersection(targetX, targetY, sourceX, sourceY, 3);
   
-  // Back up slightly from target edge for the arrowhead
-  const endX = targetX - (NODE_RADIUS + 2) * Math.cos(angle);
-  const endY = targetY - (NODE_RADIUS + 2) * Math.sin(angle);
+  const startX = startPoint.x;
+  const startY = startPoint.y;
+  const endX = endPoint.x;
+  const endY = endPoint.y;
+  
+  const angle = Math.atan2(dy, dx);
 
-  ctx.strokeStyle = '#475569';
+  ctx.strokeStyle = strokeColor;
   ctx.lineWidth = 2.5;
 
   ctx.beginPath();
@@ -440,29 +582,26 @@ function drawArrow(sourceX, sourceY, targetX, targetY, isStraight) {
 
   if (isStraight) {
     ctx.lineTo(endX, endY);
+    ctx.stroke(); 
+    drawArrowHead(endX, endY, angle, strokeColor);
   } else {
-    // Slight curve to make reciprocal connections clearer
     const midX = (startX + endX) / 2;
     const midY = (startY + endY) / 2;
     const offset = Math.min(dist * 0.15, 40);
     const cpX = midX - offset * Math.sin(angle);
     const cpY = midY + offset * Math.cos(angle);
-    ctx.quadraticCurveTo(cpX, cpY, endX, endY);
     
-    // Recalculate angle at the end point for the arrowhead
+    ctx.quadraticCurveTo(cpX, cpY, endX, endY);
+    ctx.stroke(); 
+    
     const tangentAngle = Math.atan2(endY - cpY, endX - cpX);
-    drawArrowHead(endX, endY, tangentAngle);
-    ctx.stroke();
-    return;
+    drawArrowHead(endX, endY, tangentAngle, strokeColor);
   }
-
-  ctx.stroke();
-  drawArrowHead(endX, endY, angle);
 }
 
-function drawArrowHead(x, y, angle) {
+function drawArrowHead(x, y, angle, color) {
   const headLen = 12;
-  ctx.fillStyle = '#475569';
+  ctx.fillStyle = color;
   ctx.beginPath();
   ctx.moveTo(x, y);
   ctx.lineTo(x - headLen * Math.cos(angle - Math.PI / 6), y - headLen * Math.sin(angle - Math.PI / 6));
@@ -484,13 +623,22 @@ function render() {
     ctx.fillText(title, canvas.width / 2, 28);
   }
 
-  const isStraight = document.getElementById('straightArrows').checked;
+  const isStraight = document.getElementById('lineStyle').value === 'straight';
+  const isMono = !document.getElementById('showTrophicLevels').checked;
+  const arrowColor = isMono ? '#1e2a3a' : '#475569';
+  const fontSize = parseInt(document.getElementById('fontSizeInput').value) || 11;
 
   // 1. Draw Edges
   edges.forEach(e => {
     const s = nodes.find(n => n.id === e.sourceId);
     const t = nodes.find(n => n.id === e.targetId);
-    if (s && t) drawArrow(s.x, s.y, t.x, t.y, isStraight);
+    if (s && t) {
+      if (s.id === t.id) {
+        drawSelfLoop(s, arrowColor);
+      } else {
+        drawArrow(s.x, s.y, t.x, t.y, isStraight, arrowColor);
+      }
+    }
   });
 
   // Dynamic connecting line
@@ -510,42 +658,103 @@ function render() {
 
   // 2. Draw Nodes
   nodes.forEach(n => {
-    const colors = ROLE_COLORS[n.role] || ROLE_COLORS['producer'];
+    let colors = ROLE_COLORS[n.role] || ROLE_COLORS['none'];
+    if (isMono) {
+      colors = { bg: '#ffffff', border: '#1e2a3a', text: '#1e2a3a', label: colors.label };
+    }
     
+    ctx.save();
+    
+    // Path for clipping and filling
     ctx.beginPath();
-    ctx.arc(n.x, n.y, NODE_RADIUS, 0, Math.PI * 2);
-    ctx.fillStyle = colors.bg;
-    ctx.fill();
+    ctx.rect(n.x - halfSize, n.y - halfSize, nodeSize, nodeSize);
+    
+    if (n.imgObj) {
+      // Draw background color first so transparent PNGs look nice
+      ctx.fillStyle = colors.bg;
+      ctx.fill();
+      
+      ctx.clip();
+      // Cover logic
+      const scale = Math.max(nodeSize / n.imgObj.width, nodeSize / n.imgObj.height);
+      const iw = n.imgObj.width * scale;
+      const ih = n.imgObj.height * scale;
+      ctx.drawImage(n.imgObj, n.x - iw/2, n.y - ih/2, iw, ih);
+    } else {
+      ctx.fillStyle = colors.bg;
+      ctx.fill();
+    }
+    ctx.restore();
 
+    // Draw border
     ctx.lineWidth = (n.id === selectedId || n.id === connectSourceId) ? 3.5 : 2;
     ctx.strokeStyle = (n.id === selectedId || n.id === connectSourceId) ? '#d32f2f' : colors.border;
-    ctx.stroke();
+    ctx.strokeRect(n.x - halfSize, n.y - halfSize, nodeSize, nodeSize);
 
-    // Node Text (Name)
-    ctx.fillStyle = colors.text;
-    ctx.font = 'bold 10.5px system-ui, sans-serif';
+    // Prepare Text
+    ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
-    // Auto wrap simple words
     const words = n.name.split(' ');
-    if (words.length > 1 && n.name.length > 10) {
-      ctx.fillText(words.slice(0, Math.ceil(words.length/2)).join(' '), n.x, n.y - 6);
-      ctx.fillText(words.slice(Math.ceil(words.length/2)).join(' '), n.x, n.y + 6);
+    const approxCharWidth = fontSize * 0.55; 
+    
+    // Expand wrap limit slightly if text sits below image box
+    const wrapLimit = n.imgObj ? (nodeSize * 1.5) : (nodeSize - 10);
+    const maxChars = Math.floor(wrapLimit / approxCharWidth);
+    
+    let lines = [];
+    if (words.length > 1 && n.name.length > maxChars) {
+      lines.push(words.slice(0, Math.ceil(words.length/2)).join(' '));
+      lines.push(words.slice(Math.ceil(words.length/2)).join(' '));
     } else {
-      ctx.fillText(n.name, n.x, n.y);
+      lines.push(n.name);
+    }
+
+    if (n.imgObj) {
+       // Draw text backdrop below the image
+       const maxW = Math.max(...lines.map(l => ctx.measureText(l).width));
+       const lineSpacing = fontSize * 1.2;
+       const th = lines.length * lineSpacing;
+       const boxTop = n.y + halfSize + 4;
+       
+       ctx.fillStyle = colors.bg;
+       ctx.fillRect(n.x - maxW/2 - 6, boxTop, maxW + 12, th + 8);
+       
+       ctx.lineWidth = 1;
+       ctx.strokeStyle = colors.border;
+       ctx.strokeRect(n.x - maxW/2 - 6, boxTop, maxW + 12, th + 8);
+       
+       ctx.fillStyle = colors.text;
+       if (lines.length > 1) {
+         ctx.fillText(lines[0], n.x, boxTop + 4 + (lineSpacing * 0.5));
+         ctx.fillText(lines[1], n.x, boxTop + 4 + (lineSpacing * 1.5));
+       } else {
+         ctx.fillText(lines[0], n.x, boxTop + 4 + (lineSpacing * 0.5));
+       }
+       
+    } else {
+       // Standard text drawn inside the square
+       ctx.fillStyle = colors.text;
+       if (lines.length > 1) {
+         ctx.fillText(lines[0], n.x, n.y - (fontSize * 0.6));
+         ctx.fillText(lines[1], n.x, n.y + (fontSize * 0.6));
+       } else {
+         ctx.fillText(lines[0], n.x, n.y);
+       }
     }
   });
 
   // 3. Legend
-  if (document.getElementById('showLegend').checked) {
-    drawLegendBox();
+  if (document.getElementById('showLegend') && document.getElementById('showLegend').checked && !isMono) {
+    drawLegendBox(isMono);
   }
 }
 
-function drawLegendBox() {
+function drawLegendBox(isMono) {
   const kw = 160;
-  const kh = 115;
+  const roles = ['producer', 'primary', 'secondary', 'tertiary', 'decomposer', 'none'];
+  const kh = 25 + (roles.length * 16);
   const kx = canvas.width - kw - 16;
   const ky = canvas.height - kh - 16;
   
@@ -561,14 +770,16 @@ function drawLegendBox() {
   ctx.textAlign = 'left';
   ctx.fillText('TROPHIC KEY', kx + 10, ky + 14);
 
-  const roles = ['producer', 'primary', 'secondary', 'tertiary', 'decomposer'];
-  
   roles.forEach((r, idx) => {
-    const c = ROLE_COLORS[r];
+    let c = ROLE_COLORS[r];
+    if (isMono) {
+      c = { bg: '#ffffff', border: '#1e2a3a', text: '#1e2a3a', label: c.label };
+    }
+    
     const itemY = ky + 32 + (idx * 16);
     
     ctx.beginPath();
-    ctx.arc(kx + 16, itemY - 3, 5, 0, Math.PI * 2);
+    ctx.rect(kx + 12, itemY - 6, 12, 12);
     ctx.fillStyle = c.bg;
     ctx.fill();
     ctx.lineWidth = 1.5;
@@ -577,7 +788,7 @@ function drawLegendBox() {
 
     ctx.fillStyle = '#334155';
     ctx.font = '9px system-ui, sans-serif';
-    ctx.fillText(c.label, kx + 28, itemY);
+    ctx.fillText(c.label, kx + 32, itemY);
   });
 
   ctx.restore();
@@ -593,6 +804,9 @@ function loadPreset(type) {
   selectedId = null;
   if (isConnectingMode) toggleConnectMode();
   document.getElementById('chartTitle').value = '';
+  document.getElementById('nodeSizeInput').value = 76;
+  document.getElementById('fontSizeInput').value = 11;
+  updateNodeSize();
 
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;
@@ -614,8 +828,6 @@ function loadPreset(type) {
     
     const snake = createNode('Snake', 'secondary', cx - 140, cy - 140);
     const hawk = createNode('Hawk', 'tertiary', cx + 50, cy - 170);
-    
-    const fungi = createNode('Fungi', 'decomposer', cx, cy + 170);
 
     // Energy flows (Eaten -> Eater)
     addEdge(grass.id, mouse.id);
@@ -626,10 +838,6 @@ function loadPreset(type) {
     addEdge(mouse.id, snake.id);
     addEdge(mouse.id, hawk.id);
     addEdge(snake.id, hawk.id);
-
-    // Decay flows
-    addEdge(deer.id, fungi.id);
-    addEdge(grass.id, fungi.id);
   }
 
   selectNode(null);
@@ -641,6 +849,7 @@ function clearWeb() {
     nodes = [];
     edges = [];
     selectNode(null);
+    document.getElementById('chartTitle').value = '';
     render();
   }
 }
@@ -682,6 +891,11 @@ async function copyPNG() {
 
 window.onload = () => {
   loadPreset('web');
+  // Initialize to Black & White (No trophic levels) and Legend OFF
+  document.getElementById('showTrophicLevels').checked = false;
+  document.getElementById('legendContainer').style.display = 'none';
+  document.getElementById('showLegend').checked = false; 
+  render();
 };
 </script>
 </body>
