@@ -31,7 +31,7 @@ body{font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;font-size:1
 .opt-group-body{padding:12px;}
 
 /* Action Buttons */
-.action-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px;}
+.action-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;}
 .act-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 4px;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:6px;cursor:pointer;font-size:8.5pt;font-weight:600;color:#334155;transition:all .12s;text-align:center;}
 .act-btn:hover:not(:disabled){background:#eef3fb;border-color:#3266ad;color:#1e429f;}
 .act-btn:disabled{opacity:0.4;cursor:not-allowed;}
@@ -82,7 +82,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-
       <div id="app-title">A Humble Food Web</div>
       <div id="app-subtitle">Clean Ecology Web Builder - Built by Steven Humble</div>
     </div>
-    <span class="toolbar-ver">V 1.9.0.</span>
+    <span class="toolbar-ver">V 2.0.0.</span>
   </div>
 
   <!-- SPLIT CONTENT -->
@@ -101,6 +101,7 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-
             <div class="action-grid">
               <button class="act-btn" id="btnAddNode" onclick="actionAddNode()"><i class="ti ti-leaf"></i> Add Organism</button>
               <button class="act-btn" id="btnConnect" onclick="toggleConnectMode()"><i class="ti ti-arrow-up-right"></i> Add Energy Flow</button>
+              <button class="act-btn" id="btnUndo" onclick="actionUndo()" disabled><i class="ti ti-arrow-back-up"></i> Undo</button>
             </div>
             <div class="action-banner" id="connect-banner" style="display:none; margin-top:0;">
               <i class="ti ti-info-circle" style="vertical-align:-1px;"></i> <b>Connection Mode:</b> Click the organism being <b>eaten</b>, then click the <b>eater</b> to draw energy flow. (Click the same organism twice for a self-loop).
@@ -121,11 +122,11 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-
             <div id="inspector-content" style="display:none;">
               <div class="field-row">
                 <label>Organism Name</label>
-                <input type="text" id="nodeName" placeholder="e.g., Hawk, Grass" oninput="updateSelectedAttributes()">
+                <input type="text" id="nodeName" placeholder="e.g., Hawk, Grass" onfocus="saveState()" oninput="updateSelectedAttributes()">
               </div>
               <div class="field-row">
                 <label>Trophic Level (Color Coding)</label>
-                <select id="nodeRole" onchange="updateSelectedAttributes()">
+                <select id="nodeRole" onfocus="saveState()" onchange="updateSelectedAttributes()">
                   <option value="none">None</option>
                   <option value="producer">Producer</option>
                   <option value="primary">Primary Consumer</option>
@@ -146,7 +147,8 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-
               </div>
             </div>
             <div id="inspector-empty" style="color:#777; font-size:9.5pt; font-style:italic; text-align:center; padding:10px 0;">
-              No organism selected. Click an organism on the canvas to edit it.
+              No organism selected. Click an organism on the canvas to edit it.<br><br>
+              <i class="ti ti-keyboard"></i> Tip: Press <b>Delete</b> or <b>Backspace</b> to quickly remove a selected organism.
             </div>
           </div>
         </div>
@@ -222,11 +224,14 @@ input[type=checkbox]{width:15px;height:15px;cursor:pointer;flex-shrink:0;accent-
 'use strict';
 
 // ════════════════════════════════════════════════
-//  DATA STATE 
+//  DATA STATE & UNDO LOGIC
 // ════════════════════════════════════════════════
 let nodes = [];
 let edges = []; // { sourceId, targetId }
 let nextId = 1;
+
+let historyStack = [];
+let hasSavedDrag = false;
 
 let selectedId = null;
 let dragNode = null;
@@ -252,6 +257,33 @@ const ROLE_COLORS = {
   'tertiary': { bg: '#ffebee', border: '#c62828', text: '#b71c1c', label: 'Tertiary Consumer' },
   'decomposer': { bg: '#efebe9', border: '#5d4037', text: '#3e2723', label: 'Decomposer' }
 };
+
+/* ════════════════════════════════════════════════
+   STATE MANAGEMENT (UNDO)
+   ════════════════════════════════════════════════ */
+function saveState() {
+  const stateNodes = nodes.map(n => ({...n}));
+  const stateEdges = edges.map(e => ({...e}));
+  historyStack.push({ nodes: stateNodes, edges: stateEdges, nextId: nextId });
+  if (historyStack.length > 50) historyStack.shift();
+  document.getElementById('btnUndo').disabled = false;
+}
+
+function actionUndo() {
+  if (historyStack.length > 0) {
+    const state = historyStack.pop();
+    nodes = state.nodes.map(n => ({...n}));
+    edges = state.edges.map(e => ({...e}));
+    nextId = state.nextId;
+    selectedId = null;
+    
+    if(isConnectingMode) toggleConnectMode();
+    selectNode(null);
+    render();
+    
+    document.getElementById('btnUndo').disabled = historyStack.length === 0;
+  }
+}
 
 /* ════════════════════════════════════════════════
    CORE DATA FUNCTIONS
@@ -286,11 +318,13 @@ function createNode(name, role, x, y) {
 function addEdge(sourceId, targetId) {
   const exists = edges.some(e => e.sourceId === sourceId && e.targetId === targetId);
   if (!exists) {
+    saveState();
     edges.push({ sourceId, targetId });
   }
 }
 
 function deleteNode(id) {
+  saveState();
   nodes = nodes.filter(n => n.id !== id);
   edges = edges.filter(e => e.sourceId !== id && e.targetId !== id);
   if (selectedId === id) selectNode(null);
@@ -298,6 +332,7 @@ function deleteNode(id) {
 }
 
 function deleteEdgesFromNode(id) {
+  saveState();
   edges = edges.filter(e => e.sourceId !== id && e.targetId !== id);
   render();
 }
@@ -306,6 +341,7 @@ function deleteEdgesFromNode(id) {
    USER ACTIONS
    ════════════════════════════════════════════════ */
 function actionAddNode() {
+  saveState();
   const cx = 100 + (Math.random() * 50);
   const cy = 100 + (Math.random() * 50);
   const node = createNode("New Organism", "none", cx, cy);
@@ -350,6 +386,7 @@ function actionRemoveImage() {
   if (!selectedId) return;
   const n = nodes.find(x => x.id === selectedId);
   if (n) {
+    saveState();
     n.imgObj = null;
     document.getElementById('nodeImageInput').value = '';
     render();
@@ -405,6 +442,7 @@ document.getElementById('nodeImageInput').addEventListener('change', e => {
     img.onload = () => {
       const n = nodes.find(x => x.id === selectedId);
       if (n) {
+        saveState();
         n.imgObj = img;
         render();
         selectNode(selectedId); // Refresh UI to show the remove button
@@ -413,6 +451,25 @@ document.getElementById('nodeImageInput').addEventListener('change', e => {
     img.src = event.target.result;
   };
   reader.readAsDataURL(file);
+});
+
+/* ════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+   ════════════════════════════════════════════════ */
+window.addEventListener('keydown', e => {
+  const tag = e.target.tagName.toUpperCase();
+  // Don't intercept backspace/delete if the user is typing in an input
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+  if (e.key === 'Backspace' || e.key === 'Delete') {
+    if (selectedId) {
+      actionDeleteSelected();
+      e.preventDefault();
+    }
+  } else if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+    actionUndo();
+    e.preventDefault();
+  }
 });
 
 /* ════════════════════════════════════════════════
@@ -429,7 +486,6 @@ function getPointerPos(e) {
 }
 
 function getNodeAtPoint(x, y) {
-  // Reverse loop to grab topmost node
   for (let i = nodes.length - 1; i >= 0; i--) {
     const n = nodes[i];
     const inBounds = Math.abs(n.x - x) <= halfSize && Math.abs(n.y - y) <= halfSize;
@@ -441,6 +497,7 @@ function getNodeAtPoint(x, y) {
 }
 
 canvas.addEventListener('mousedown', e => {
+  hasSavedDrag = false;
   const pos = getPointerPos(e);
   const hit = getNodeAtPoint(pos.x, pos.y);
 
@@ -450,7 +507,7 @@ canvas.addEventListener('mousedown', e => {
         connectSourceId = hit.id;
       } else {
         addEdge(connectSourceId, hit.id);
-        connectSourceId = null; // Reset for next connection
+        connectSourceId = null; 
         
         // Turn off mode automatically unless the lock checkbox is checked
         if (!document.getElementById('lockConnectMode').checked) {
@@ -485,16 +542,20 @@ canvas.addEventListener('mousemove', e => {
   mouseY = pos.y;
 
   if (dragNode) {
+    if (!hasSavedDrag) {
+      saveState();
+      hasSavedDrag = true;
+    }
+    
     dragNode.x = pos.x + dragOffsetX;
     dragNode.y = pos.y + dragOffsetY;
     
-    // Bounds checking based on current halfSize
+    // Bounds checking
     dragNode.x = Math.max(halfSize, Math.min(canvas.width - halfSize, dragNode.x));
     dragNode.y = Math.max(halfSize, Math.min(canvas.height - halfSize, dragNode.y));
     
     render();
   } else if (isConnectingMode && connectSourceId) {
-    // Redraw to show dynamic connection line
     render();
   }
 });
@@ -670,12 +731,10 @@ function render() {
     ctx.rect(n.x - halfSize, n.y - halfSize, nodeSize, nodeSize);
     
     if (n.imgObj) {
-      // Draw background color first so transparent PNGs look nice
       ctx.fillStyle = colors.bg;
       ctx.fill();
       
       ctx.clip();
-      // Cover logic
       const scale = Math.max(nodeSize / n.imgObj.width, nodeSize / n.imgObj.height);
       const iw = n.imgObj.width * scale;
       const ih = n.imgObj.height * scale;
@@ -699,7 +758,6 @@ function render() {
     const words = n.name.split(' ');
     const approxCharWidth = fontSize * 0.55; 
     
-    // Expand wrap limit slightly if text sits below image box
     const wrapLimit = n.imgObj ? (nodeSize * 1.5) : (nodeSize - 10);
     const maxChars = Math.floor(wrapLimit / approxCharWidth);
     
@@ -798,6 +856,9 @@ function drawLegendBox(isMono) {
    PRESET LOADERS & EXPORT
    ════════════════════════════════════════════════ */
 function loadPreset(type) {
+  historyStack = [];
+  document.getElementById('btnUndo').disabled = true;
+
   nodes = [];
   edges = [];
   nextId = 1;
@@ -846,6 +907,7 @@ function loadPreset(type) {
 
 function clearWeb() {
   if (confirm('Clear entire food web?')) {
+    saveState();
     nodes = [];
     edges = [];
     selectNode(null);
@@ -891,7 +953,6 @@ async function copyPNG() {
 
 window.onload = () => {
   loadPreset('web');
-  // Initialize to Black & White (No trophic levels) and Legend OFF
   document.getElementById('showTrophicLevels').checked = false;
   document.getElementById('legendContainer').style.display = 'none';
   document.getElementById('showLegend').checked = false; 
