@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>A Humble Food Web</title>
+<!-- Embedded Favicon: Interconnected Food Web Nodes -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231e2a3a'/%3E%3Ccircle cx='9' cy='23' r='4' fill='%23009E73'/%3E%3Ccircle cx='23' cy='18' r='4' fill='%230072B2'/%3E%3Ccircle cx='16' cy='8' r='4' fill='%23D55E00'/%3E%3Cpath d='M11.5 20.5l9-9M12 20l7-9' stroke='%23fff' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M21 15l-3.5-5M21.5 14.5l-3.5-5' stroke='%23fff' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.31.0/webfont/tabler-icons.min.css">
 <style>
 /* --- A HUMBLE UNIFIED STYLESHEET START --- */
@@ -534,8 +536,9 @@ input[type=checkbox] {
             </div>
             
             <div class="btn-row" style="justify-content:flex-start; margin-top:10px;">
-              <button class="btn btn-secondary" onclick="loadPreset('chain')"><i class="ti ti-link"></i> Sample Chain</button>
-              <button class="btn btn-secondary" onclick="loadPreset('web')"><i class="ti ti-spider"></i> Sample Web</button>
+              <button class="btn btn-secondary" onclick="loadPreset('chain')"><i class="ti ti-link"></i> Chain</button>
+              <button class="btn btn-secondary" onclick="loadPreset('web')"><i class="ti ti-spider"></i> Web</button>
+              <button class="btn btn-secondary" onclick="loadPreset('pyramid')"><i class="ti ti-triangle"></i> Pyramid</button>
               <button class="btn btn-secondary" onclick="clearWeb()"><i class="ti ti-rotate-clockwise"></i> Clear</button>
             </div>
           </div>
@@ -1234,6 +1237,21 @@ function loadPreset(type) {
     addEdge(mouse.id, snake.id);
     addEdge(mouse.id, hawk.id);
     addEdge(snake.id, hawk.id);
+  } else if (type === 'pyramid') {
+    document.getElementById('chartTitle').value = 'Ecological Energy Pyramid';
+    // Stacked vertically: Producers at the bottom, Tertiary at the top
+    const prod = createNode('Producers (10,000J)', 'producer', cx, cy + 160);
+    const primary = createNode('Primary Cons. (1,000J)', 'primary', cx, cy + 60);
+    const secondary = createNode('Secondary Cons. (100J)', 'secondary', cx, cy - 40);
+    const tertiary = createNode('Tertiary Cons. (10J)', 'tertiary', cx, cy - 140);
+
+    addEdge(prod.id, primary.id);
+    addEdge(primary.id, secondary.id);
+    addEdge(secondary.id, tertiary.id);
+    
+    // Auto-enable trophic colors for pyramids so the levels stand out immediately
+    document.getElementById('showTrophicLevels').checked = true;
+    toggleTrophicLevels();
   }
 
   selectNode(null);
