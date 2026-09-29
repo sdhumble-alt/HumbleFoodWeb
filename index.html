@@ -190,7 +190,7 @@ body {
 /* Action Tiles */
 .action-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 6px;
   margin-bottom: 10px;
 }
@@ -223,6 +223,7 @@ body {
 .act-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  background: #f1f5f9;
 }
 
 .act-btn i {
@@ -261,18 +262,24 @@ input[type=file] {
   width: 100%;
 }
 
-input[type=text]:hover,
-input[type=number]:hover,
-select:hover {
+input[type=text]:hover:not(:disabled),
+input[type=number]:hover:not(:disabled),
+select:hover:not(:disabled) {
   border-color: var(--input-border-hover);
 }
 
-input[type=text]:focus,
-input[type=number]:focus,
-select:focus {
+input[type=text]:focus:not(:disabled),
+input[type=number]:focus:not(:disabled),
+select:focus:not(:disabled) {
   border-color: var(--input-border-focus);
   border-width: 2px;
   box-shadow: 0 0 0 3px var(--input-focus-ring);
+}
+
+input:disabled, select:disabled {
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: not-allowed;
 }
 
 .field-row {
@@ -289,7 +296,6 @@ select:focus {
 }
 
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 
 .toggle-row {
   display: flex;
@@ -413,6 +419,15 @@ input[type=checkbox] {
   align-items: center;
   gap: 5px;
 }
+
+/* Custom energy panel styling */
+#energyOptions {
+  background: #f8fafc;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 8px;
+}
 </style>
 </head>
 <body>
@@ -424,7 +439,7 @@ input[type=checkbox] {
       <div id="app-title">A Humble Food Web</div>
       <div id="app-subtitle">Clean Ecology Web Builder &mdash; Built by Steven Humble</div>
     </div>
-    <div class="toolbar-ver">V 1.0.0 &mdash; 2026-09-16</div>
+    <div class="toolbar-ver">V 1.1.0 &mdash; 2026-09-29</div>
   </header>
 
   <!-- SPLIT CONTENT -->
@@ -442,6 +457,7 @@ input[type=checkbox] {
           <div class="opt-group-body">
             <div class="action-grid">
               <button class="act-btn" id="btnAddNode" onclick="actionAddNode()"><i class="ti ti-leaf"></i> Add Organism</button>
+              <button class="act-btn" id="btnAddSun" onclick="actionAddSun()"><i class="ti ti-sun"></i> Add Sun</button>
               <button class="act-btn" id="btnConnect" onclick="toggleConnectMode()"><i class="ti ti-arrow-up-right"></i> Add Energy Flow</button>
               <button class="act-btn" id="btnUndo" onclick="actionUndo()" disabled><i class="ti ti-arrow-back-up"></i> Undo</button>
             </div>
@@ -470,6 +486,7 @@ input[type=checkbox] {
                 <label>Trophic Level (Color Coding)</label>
                 <select id="nodeRole" onfocus="saveState()" onchange="updateSelectedAttributes()">
                   <option value="none">None</option>
+                  <option value="sun">Sun</option>
                   <option value="producer">Producer</option>
                   <option value="primary">Primary Consumer</option>
                   <option value="secondary">Secondary Consumer</option>
@@ -513,14 +530,24 @@ input[type=checkbox] {
                 <option value="curved">Curved Lines</option>
               </select>
             </div>
-            <div class="grid-2">
+            
+            <div class="field-row" id="sunPosContainer" style="display:none; margin-top: 6px;">
+              <label>Sun Position <i class="ti ti-sun" style="font-size:10px; color:#f59e0b;"></i></label>
+              <select id="sunPosition" onchange="render()">
+                <option value="top-left" selected>Top-Left</option>
+                <option value="bottom-left">Bottom-Left</option>
+                <option value="bottom-right">Bottom-Right</option>
+              </select>
+            </div>
+
+            <div class="grid-2" style="margin-top: 10px;">
               <div class="field-row">
                 <label>Node Size</label>
                 <input type="number" id="nodeSizeInput" value="76" min="30" max="250" step="2" oninput="updateNodeSize()">
               </div>
               <div class="field-row">
                 <label>Font Size</label>
-                <input type="number" id="fontSizeInput" value="11" min="6" max="36" step="1" oninput="render()">
+                <input type="number" id="fontSizeInput" value="9" min="6" max="36" step="1" oninput="render()">
               </div>
             </div>
             
@@ -534,12 +561,32 @@ input[type=checkbox] {
                 <label for="showLegend">Show Key</label>
               </div>
             </div>
+
+            <!-- Pyramid-Only Settings -->
+            <div id="pyramidOnlySettings" style="display:none;">
+              <div class="field-row" style="margin-top: 10px;">
+                <div class="toggle-row">
+                  <input type="checkbox" id="calcEnergy" onchange="toggleEnergyOptions()">
+                  <label for="calcEnergy" style="font-weight: 600; color: #1e429f;">Enable Energy Pyramid</label>
+                </div>
+              </div>
+              <div id="energyOptions" style="display:none;">
+                <div class="field-row">
+                  <label>Base Energy (Joules/kcal)</label>
+                  <input type="number" id="baseEnergy" value="10000" min="0" oninput="render()">
+                </div>
+                <label style="font-size: 8.5pt; color: var(--input-label); font-weight: 700; text-transform: uppercase;">Show Energy Value On:</label>
+                <div class="grid-2" style="margin-top: 4px;">
+                  <div class="toggle-row"><input type="checkbox" id="showE_producer" checked onchange="render()"><label>Producers</label></div>
+                  <div class="toggle-row"><input type="checkbox" id="showE_primary" checked onchange="render()"><label>Primary</label></div>
+                  <div class="toggle-row"><input type="checkbox" id="showE_secondary" checked onchange="render()"><label>Secondary</label></div>
+                  <div class="toggle-row"><input type="checkbox" id="showE_tertiary" checked onchange="render()"><label>Tertiary</label></div>
+                </div>
+              </div>
+            </div>
             
-            <div class="btn-row" style="justify-content:flex-start; margin-top:10px;">
-              <button class="btn btn-secondary" onclick="loadPreset('chain')"><i class="ti ti-link"></i> Chain</button>
-              <button class="btn btn-secondary" onclick="loadPreset('web')"><i class="ti ti-spider"></i> Web</button>
-              <button class="btn btn-secondary" onclick="loadPreset('pyramid')"><i class="ti ti-triangle"></i> Pyramid</button>
-              <button class="btn btn-secondary" onclick="clearWeb()"><i class="ti ti-rotate-clockwise"></i> Clear</button>
+            <div class="btn-row" style="justify-content:flex-start; margin-top:16px;">
+              <button class="btn btn-primary" id="btnConvertPyramid" onclick="togglePyramidMode()" style="width: 100%;"><i class="ti ti-layers-intersect"></i> Convert to Food Pyramid</button>
             </div>
           </div>
         </div>
@@ -574,7 +621,7 @@ input[type=checkbox] {
 //  DATA STATE & UNDO LOGIC
 // ════════════════════════════════════════════════
 let nodes = [];
-let edges = []; // { sourceId, targetId }
+let edges = []; 
 let nextId = 1;
 
 let historyStack = [];
@@ -592,6 +639,8 @@ let mouseY = 0;
 
 let nodeSize = 76;
 let halfSize = nodeSize / 2;
+let drawPyramidBackground = false; 
+let prePyramidColorState = false;
 
 const canvas = document.getElementById('webCanvas');
 const ctx = canvas.getContext('2d');
@@ -599,6 +648,7 @@ const ctx = canvas.getContext('2d');
 // Standardized Okabe-Ito color-safe trophic styling
 const ROLE_COLORS = {
   'none': { bg: '#f1f5f9', border: '#94a3b8', text: '#334155', label: 'None' },
+  'sun': { bg: '#fffbe4', border: '#f59e0b', text: '#b45309', label: 'Sun' },
   'producer': { bg: '#e6f7f2', border: '#009E73', text: '#006d50', label: 'Producer' },
   'primary': { bg: '#e8f4fc', border: '#0072B2', text: '#004c77', label: 'Primary Consumer' },
   'secondary': { bg: '#fdf3e7', border: '#E69F00', text: '#9c6b00', label: 'Secondary Consumer' },
@@ -612,7 +662,7 @@ const ROLE_COLORS = {
 function saveState() {
   const stateNodes = nodes.map(n => ({...n}));
   const stateEdges = edges.map(e => ({...e}));
-  historyStack.push({ nodes: stateNodes, edges: stateEdges, nextId: nextId });
+  historyStack.push({ nodes: stateNodes, edges: stateEdges, nextId: nextId, isPyramid: drawPyramidBackground });
   if (historyStack.length > 50) historyStack.shift();
   document.getElementById('btnUndo').disabled = false;
 }
@@ -623,13 +673,48 @@ function actionUndo() {
     nodes = state.nodes.map(n => ({...n}));
     edges = state.edges.map(e => ({...e}));
     nextId = state.nextId;
+    drawPyramidBackground = state.isPyramid;
     selectedId = null;
     
     if(isConnectingMode) toggleConnectMode();
     selectNode(null);
+    updateEditState();
     render();
     
     document.getElementById('btnUndo').disabled = historyStack.length === 0;
+  }
+}
+
+// Global UI State Update to Prevent Editing in Pyramid Mode
+function updateEditState() {
+  const isPyramid = drawPyramidBackground;
+  
+  document.getElementById('btnAddNode').disabled = isPyramid;
+  document.getElementById('btnAddSun').disabled = isPyramid;
+  document.getElementById('btnConnect').disabled = isPyramid;
+  
+  document.getElementById('btnUndo').disabled = historyStack.length === 0;
+  
+  const pyOpts = document.getElementById('pyramidOnlySettings');
+  if (pyOpts) {
+    pyOpts.style.display = isPyramid ? 'block' : 'none';
+  }
+  
+  const pyBtn = document.getElementById('btnConvertPyramid');
+  if (pyBtn) {
+    if (isPyramid) {
+      pyBtn.innerHTML = '<i class="ti ti-layout-grid"></i> Return to Food Web';
+      pyBtn.className = 'btn btn-secondary';
+      pyBtn.style.background = '#fdf3e7';
+      pyBtn.style.color = '#9c6b00';
+      pyBtn.style.borderColor = '#E69F00';
+    } else {
+      pyBtn.innerHTML = '<i class="ti ti-layers-intersect"></i> Convert to Food Pyramid';
+      pyBtn.className = 'btn btn-primary';
+      pyBtn.style.background = '';
+      pyBtn.style.color = '';
+      pyBtn.style.borderColor = '';
+    }
   }
 }
 
@@ -638,6 +723,7 @@ function actionUndo() {
    ════════════════════════════════════════════════ */
 function updateNodeSize() {
   nodeSize = parseInt(document.getElementById('nodeSizeInput').value) || 76;
+  if (nodeSize <= 0 || isNaN(nodeSize)) nodeSize = 76; 
   halfSize = nodeSize / 2;
   render();
 }
@@ -654,6 +740,12 @@ function toggleTrophicLevels() {
     legendContainer.style.display = 'none';
     showLegendBox.checked = false;
   }
+  render();
+}
+
+function toggleEnergyOptions() {
+  const isChecked = document.getElementById('calcEnergy').checked;
+  document.getElementById('energyOptions').style.display = isChecked ? 'block' : 'none';
   render();
 }
 
@@ -693,6 +785,19 @@ function actionAddNode() {
   const cx = 100 + (Math.random() * 50);
   const cy = 100 + (Math.random() * 50);
   const node = createNode("New Organism", "none", cx, cy);
+  
+  if (isConnectingMode) toggleConnectMode();
+  selectNode(node.id);
+  render();
+}
+
+function actionAddSun() {
+  if (nodes.some(n => n.role === 'sun')) {
+    alert("The sun is already in your ecosystem!");
+    return;
+  }
+  saveState();
+  const node = createNode("Sun", "sun", 0, 0); 
   
   if (isConnectingMode) toggleConnectMode();
   selectNode(node.id);
@@ -742,6 +847,122 @@ function actionRemoveImage() {
   }
 }
 
+// Determines which tiers actually exist in the current setup
+function getActiveTiers() {
+  let maxLevel = 1; 
+  if (nodes.some(n => n.role === 'tertiary')) maxLevel = 4;
+  else if (nodes.some(n => n.role === 'secondary')) maxLevel = 3;
+  else if (nodes.some(n => n.role === 'primary')) maxLevel = 2;
+  
+  let activeTiers = [];
+  if (maxLevel >= 4) activeTiers.push('tertiary');
+  if (maxLevel >= 3) activeTiers.push('secondary');
+  if (maxLevel >= 2) activeTiers.push('primary');
+  activeTiers.push('producer');
+  
+  return activeTiers;
+}
+
+// Calculates dynamic heights based on the number of required tiers
+function getRoleHeights() {
+  const tiers = getActiveTiers();
+  const topY = 80;
+  const bottomY = 480;
+  const tierHeight = (bottomY - topY) / tiers.length;
+  
+  const heights = {};
+  tiers.forEach((role, i) => {
+    // The Y center of each dynamically sized tier
+    heights[role] = topY + (i * tierHeight) + (tierHeight / 2);
+  });
+  
+  // Non-pyramid roles are tucked away where they won't interfere
+  heights['decomposer'] = 530;
+  heights['none'] = 40;
+  
+  // Align Sun seamlessly next to the Producers base
+  heights['sun'] = heights['producer'] || ((topY + bottomY) / 2); 
+  
+  return heights;
+}
+
+function arrangeNodesAsPyramid() {
+  const roleHeights = getRoleHeights();
+  const groups = { tertiary: [], secondary: [], primary: [], producer: [], decomposer: [], none: [], sun: [] };
+  
+  nodes.forEach(n => {
+    if (groups[n.role]) groups[n.role].push(n);
+  });
+
+  const centerX = canvas.width / 2;
+
+  Object.keys(groups).forEach(role => {
+    const roleNodes = groups[role];
+    if (roleNodes.length === 0) return;
+    
+    let spacing = nodeSize + 10; 
+    let startX;
+
+    if (role === 'sun') {
+      startX = 70; // Pin left
+    } else if (role === 'decomposer') {
+      startX = canvas.width - (roleNodes.length * spacing);
+    } else if (role === 'none') {
+      startX = spacing; 
+    } else {
+      const totalWidth = (roleNodes.length - 1) * spacing;
+      startX = centerX - (totalWidth / 2);
+    }
+
+    roleNodes.forEach((n, i) => {
+      n.x = startX + (i * spacing);
+      n.y = roleHeights[role];
+    });
+  });
+}
+
+function togglePyramidMode() {
+  if (drawPyramidBackground) {
+    saveState(); 
+    drawPyramidBackground = false;
+    
+    nodes.forEach(n => {
+      if (n.originalX !== undefined && n.originalY !== undefined && n.role !== 'sun') {
+        n.x = n.originalX;
+        n.y = n.originalY;
+      }
+    });
+
+    document.getElementById('showTrophicLevels').checked = prePyramidColorState;
+    toggleTrophicLevels();
+    
+  } else {
+    if (nodes.length === 0) return;
+    saveState(); 
+    
+    prePyramidColorState = document.getElementById('showTrophicLevels').checked;
+    
+    nodes.forEach(n => {
+      if (n.role !== 'sun') {
+        n.originalX = n.x;
+        n.originalY = n.y;
+      }
+    });
+    
+    drawPyramidBackground = true;
+    arrangeNodesAsPyramid();
+
+    document.getElementById('showTrophicLevels').checked = true;
+    toggleTrophicLevels(); 
+    
+    if (isConnectingMode) toggleConnectMode();
+    selectNode(null); 
+  }
+  
+  updateEditState();
+  render();
+}
+
 function selectNode(id) {
   selectedId = id;
   const insp = document.getElementById('inspector-content');
@@ -776,6 +997,12 @@ function updateSelectedAttributes() {
 
   n.name = document.getElementById('nodeName').value.trim();
   n.role = document.getElementById('nodeRole').value;
+  
+  // Re-flow dynamically if the user alters roles while the pyramid is active
+  if (drawPyramidBackground) {
+    arrangeNodesAsPyramid();
+  }
+  
   render();
 }
 
@@ -802,24 +1029,6 @@ document.getElementById('nodeImageInput').addEventListener('change', e => {
 });
 
 /* ════════════════════════════════════════════════
-   KEYBOARD SHORTCUTS
-   ════════════════════════════════════════════════ */
-window.addEventListener('keydown', e => {
-  const tag = e.target.tagName.toUpperCase();
-  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-
-  if (e.key === 'Backspace' || e.key === 'Delete') {
-    if (selectedId) {
-      actionDeleteSelected();
-      e.preventDefault();
-    }
-  } else if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
-    actionUndo();
-    e.preventDefault();
-  }
-});
-
-/* ════════════════════════════════════════════════
    CANVAS INTERACTION
    ════════════════════════════════════════════════ */
 function getPointerPos(e) {
@@ -835,15 +1044,16 @@ function getPointerPos(e) {
 function getNodeAtPoint(x, y) {
   for (let i = nodes.length - 1; i >= 0; i--) {
     const n = nodes[i];
+    if (drawPyramidBackground && (n.role === 'none' || n.role === 'decomposer')) continue;
     const inBounds = Math.abs(n.x - x) <= halfSize && Math.abs(n.y - y) <= halfSize;
-    if (inBounds) {
-      return n;
-    }
+    if (inBounds) return n;
   }
   return null;
 }
 
 canvas.addEventListener('mousedown', e => {
+  if (drawPyramidBackground) return; 
+
   hasSavedDrag = false;
   const pos = getPointerPos(e);
   const hit = getNodeAtPoint(pos.x, pos.y);
@@ -870,7 +1080,6 @@ canvas.addEventListener('mousedown', e => {
     return;
   }
 
-  // Normal Selection / Drag mode
   if (hit) {
     selectNode(hit.id);
     dragNode = hit;
@@ -886,7 +1095,8 @@ canvas.addEventListener('mousemove', e => {
   mouseX = pos.x;
   mouseY = pos.y;
 
-  if (dragNode) {
+  // The sun is docked globally by dropdown settings, drag overrides disabled for it
+  if (dragNode && !drawPyramidBackground && dragNode.role !== 'sun') {
     if (!hasSavedDrag) {
       saveState();
       hasSavedDrag = true;
@@ -899,7 +1109,7 @@ canvas.addEventListener('mousemove', e => {
     dragNode.y = Math.max(halfSize, Math.min(canvas.height - halfSize, dragNode.y));
     
     render();
-  } else if (isConnectingMode && connectSourceId) {
+  } else if (isConnectingMode && connectSourceId && !drawPyramidBackground) {
     render();
   }
 });
@@ -915,13 +1125,31 @@ canvas.addEventListener('mouseleave', () => {
   }
 });
 
+window.addEventListener('keydown', e => {
+  const tag = e.target.tagName.toUpperCase();
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+  if (e.key === 'Backspace' || e.key === 'Delete') {
+    if (selectedId && !drawPyramidBackground) {
+      actionDeleteSelected();
+      e.preventDefault();
+    }
+  } else if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+    actionUndo();
+    e.preventDefault();
+  }
+});
+
 /* ════════════════════════════════════════════════
-   CANVAS RENDERING
+   CANVAS RENDERING (FORTIFIED ENGINE)
    ════════════════════════════════════════════════ */
 function getSquareIntersection(sourceX, sourceY, targetX, targetY, padding) {
   const dx = targetX - sourceX;
   const dy = targetY - sourceY;
-  if (dx === 0 && dy === 0) return {x: sourceX, y: sourceY};
+  
+  if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) {
+    return {x: sourceX, y: sourceY};
+  }
   
   const paddedHalfSize = halfSize + padding;
   
@@ -929,6 +1157,8 @@ function getSquareIntersection(sourceX, sourceY, targetX, targetY, padding) {
   const scaleY = Math.abs(dy) > 0 ? paddedHalfSize / Math.abs(dy) : Infinity;
   const scale = Math.min(scaleX, scaleY);
   
+  if (!isFinite(scale)) return {x: sourceX, y: sourceY}; 
+
   return {
     x: sourceX + dx * scale,
     y: sourceY + dy * scale
@@ -938,10 +1168,8 @@ function getSquareIntersection(sourceX, sourceY, targetX, targetY, padding) {
 function drawSelfLoop(n, strokeColor) {
   const startX = n.x + halfSize * 0.4;
   const startY = n.y - halfSize;
-  
   const endX = n.x + halfSize + 3;
   const endY = n.y - halfSize * 0.4;
-  
   const loopSize = Math.max(40, nodeSize * 0.6);
   
   const cp1X = startX;
@@ -951,7 +1179,6 @@ function drawSelfLoop(n, strokeColor) {
   
   ctx.strokeStyle = strokeColor;
   ctx.lineWidth = 2.5;
-  
   ctx.beginPath();
   ctx.moveTo(startX, startY);
   ctx.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, endX, endY);
@@ -966,7 +1193,7 @@ function drawArrow(sourceX, sourceY, targetX, targetY, isStraight, strokeColor) 
   const dy = targetY - sourceY;
   const dist = Math.hypot(dx, dy);
   
-  if (dist <= nodeSize) return;
+  if (dist <= nodeSize) return; 
 
   const startPoint = getSquareIntersection(sourceX, sourceY, targetX, targetY, 0);
   const endPoint = getSquareIntersection(targetX, targetY, sourceX, sourceY, 3);
@@ -1014,146 +1241,348 @@ function drawArrowHead(x, y, angle, color) {
   ctx.fill();
 }
 
-function render() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  const title = document.getElementById('chartTitle').value.trim();
-  if (title) {
-    ctx.font = 'bold 16px Georgia, "Times New Roman", serif';
-    ctx.fillStyle = '#1e2a3a';
-    ctx.textAlign = 'center';
-    ctx.fillText(title, canvas.width / 2, 28);
-  }
-
-  const isStraight = document.getElementById('lineStyle').value === 'straight';
-  const isMono = !document.getElementById('showTrophicLevels').checked;
-  const arrowColor = isMono ? '#1e2a3a' : '#475569';
-  const fontSize = parseInt(document.getElementById('fontSizeInput').value) || 11;
-
-  // 1. Draw Edges
-  edges.forEach(e => {
-    const s = nodes.find(n => n.id === e.sourceId);
-    const t = nodes.find(n => n.id === e.targetId);
-    if (s && t) {
-      if (s.id === t.id) {
-        drawSelfLoop(s, arrowColor);
-      } else {
-        drawArrow(s.x, s.y, t.x, t.y, isStraight, arrowColor);
-      }
-    }
-  });
-
-  // Dynamic connecting line
-  if (isConnectingMode && connectSourceId) {
-    const s = nodes.find(n => n.id === connectSourceId);
-    if (s) {
-      ctx.strokeStyle = '#3266ad';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]);
-      ctx.beginPath();
-      ctx.moveTo(s.x, s.y);
-      ctx.lineTo(mouseX, mouseY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-  }
-
-  // 2. Draw Nodes
-  nodes.forEach(n => {
-    let colors = ROLE_COLORS[n.role] || ROLE_COLORS['none'];
-    if (isMono) {
-      colors = { bg: '#ffffff', border: '#1e2a3a', text: '#1e2a3a', label: colors.label };
-    }
+function drawPyramidBackgroundSlices() {
+  if (!drawPyramidBackground) return;
+  
+  const cx = canvas.width / 2;
+  const topY = 80;
+  const bottomY = 480;
+  const halfBase = 320;
+  const tiers = getActiveTiers();
+  const tierHeight = (bottomY - topY) / tiers.length;
+  
+  const baseEnergy = parseFloat(document.getElementById('baseEnergy').value) || 0;
+  const calcEnergy = document.getElementById('calcEnergy').checked;
+  
+  ctx.save();
+  tiers.forEach((role, i) => {
+    const c = ROLE_COLORS[role] || ROLE_COLORS['none'];
+    const showLevelsChecked = document.getElementById('showTrophicLevels');
+    const isMono = showLevelsChecked ? !showLevelsChecked.checked : true;
     
-    ctx.save();
+    const yTop = topY + i * tierHeight + (i === 0 ? 0 : 2);
+    const yBottom = topY + (i + 1) * tierHeight - (i === tiers.length - 1 ? 0 : 2);
+    
+    const wTop = ((yTop - topY) / (bottomY - topY)) * halfBase;
+    const wBottom = ((yBottom - topY) / (bottomY - topY)) * halfBase;
+    
     ctx.beginPath();
-    ctx.rect(n.x - halfSize, n.y - halfSize, nodeSize, nodeSize);
-    
-    if (n.imgObj) {
-      ctx.fillStyle = colors.bg;
-      ctx.fill();
-      
-      ctx.clip();
-      const scale = Math.max(nodeSize / n.imgObj.width, nodeSize / n.imgObj.height);
-      const iw = n.imgObj.width * scale;
-      const ih = n.imgObj.height * scale;
-      ctx.drawImage(n.imgObj, n.x - iw/2, n.y - ih/2, iw, ih);
+    if (i === 0) {
+      ctx.moveTo(cx, yTop);
     } else {
-      ctx.fillStyle = colors.bg;
-      ctx.fill();
+      ctx.moveTo(cx - wTop, yTop);
+      ctx.lineTo(cx + wTop, yTop);
     }
-    ctx.restore();
-
-    // Draw border
-    ctx.lineWidth = (n.id === selectedId || n.id === connectSourceId) ? 3.5 : 2;
-    ctx.strokeStyle = (n.id === selectedId || n.id === connectSourceId) ? '#d32f2f' : colors.border;
-    ctx.strokeRect(n.x - halfSize, n.y - halfSize, nodeSize, nodeSize);
-
-    // Prepare Text
-    ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
-    ctx.textAlign = 'center';
+    ctx.lineTo(cx + wBottom, yBottom);
+    ctx.lineTo(cx - wBottom, yBottom);
+    ctx.closePath();
+    
+    ctx.fillStyle = isMono ? '#f1f5f9' : c.bg;
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = isMono ? '#cbd5e1' : c.border;
+    ctx.stroke();
+    
+    // Draw Text Label on Left
+    ctx.fillStyle = isMono ? '#334155' : c.text;
+    ctx.font = 'bold 12px system-ui, sans-serif';
+    ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     
-    const words = n.name.split(' ');
-    const approxCharWidth = fontSize * 0.55; 
+    let label = '';
+    if (role === 'tertiary') label = 'Tertiary Consumers';
+    if (role === 'secondary') label = 'Secondary Consumers';
+    if (role === 'primary') label = 'Primary Consumers';
+    if (role === 'producer') label = 'Producers';
     
-    const wrapLimit = n.imgObj ? (nodeSize * 1.5) : (nodeSize - 10);
-    const maxChars = Math.floor(wrapLimit / approxCharWidth);
+    ctx.fillText(label, cx - wBottom - 15, (yTop + yBottom) / 2);
     
-    let lines = [];
-    if (words.length > 1 && n.name.length > maxChars) {
-      lines.push(words.slice(0, Math.ceil(words.length/2)).join(' '));
-      lines.push(words.slice(Math.ceil(words.length/2)).join(' '));
-    } else {
-      lines.push(n.name);
-    }
-
-    if (n.imgObj) {
-       const maxW = Math.max(...lines.map(l => ctx.measureText(l).width));
-       const lineSpacing = fontSize * 1.2;
-       const th = lines.length * lineSpacing;
-       const boxTop = n.y + halfSize + 4;
+    // Process Energy Levels on Right
+    if (calcEnergy) {
+       let showEnergy = false;
+       let multiplier = 1;
        
-       ctx.fillStyle = colors.bg;
-       ctx.fillRect(n.x - maxW/2 - 6, boxTop, maxW + 12, th + 8);
+       if (role === 'producer') { showEnergy = document.getElementById('showE_producer').checked; multiplier = 1; }
+       if (role === 'primary') { showEnergy = document.getElementById('showE_primary').checked; multiplier = 0.1; }
+       if (role === 'secondary') { showEnergy = document.getElementById('showE_secondary').checked; multiplier = 0.01; }
+       if (role === 'tertiary') { showEnergy = document.getElementById('showE_tertiary').checked; multiplier = 0.001; }
        
-       ctx.lineWidth = 1;
-       ctx.strokeStyle = colors.border;
-       ctx.strokeRect(n.x - maxW/2 - 6, boxTop, maxW + 12, th + 8);
-       
-       ctx.fillStyle = colors.text;
-       if (lines.length > 1) {
-         ctx.fillText(lines[0], n.x, boxTop + 4 + (lineSpacing * 0.5));
-         ctx.fillText(lines[1], n.x, boxTop + 4 + (lineSpacing * 1.5));
-       } else {
-         ctx.fillText(lines[0], n.x, boxTop + 4 + (lineSpacing * 0.5));
-       }
-       
-    } else {
-       ctx.fillStyle = colors.text;
-       if (lines.length > 1) {
-         ctx.fillText(lines[0], n.x, n.y - (fontSize * 0.6));
-         ctx.fillText(lines[1], n.x, n.y + (fontSize * 0.6));
-       } else {
-         ctx.fillText(lines[0], n.x, n.y);
+       if (showEnergy) {
+         const energyVal = baseEnergy * multiplier;
+         const energyStr = energyVal.toLocaleString() + ' J';
+         ctx.textAlign = 'left';
+         ctx.fillText(energyStr, cx + wBottom + 15, (yTop + yBottom) / 2);
        }
     }
   });
+  ctx.restore();
+}
 
-  // 3. Legend
-  if (document.getElementById('showLegend') && document.getElementById('showLegend').checked && !isMono) {
-    drawLegendBox(isMono);
+function render() {
+  try {
+    const sunPosRow = document.getElementById('sunPosContainer');
+    if (sunPosRow) {
+      sunPosRow.style.display = nodes.some(n => n.role === 'sun') ? 'flex' : 'none';
+    }
+
+    // Force strict sun coordinates before processing edges to ensure visual parity
+    const sunNode = nodes.find(n => n.role === 'sun');
+    if (sunNode) {
+      const pos = document.getElementById('sunPosition').value;
+      const padding = Math.max(nodeSize, 80); 
+      if (pos === 'top-left') { sunNode.x = padding; sunNode.y = padding; }
+      if (pos === 'bottom-left') { sunNode.x = padding; sunNode.y = canvas.height - padding; }
+      if (pos === 'bottom-right') { sunNode.x = canvas.width - padding; sunNode.y = canvas.height - padding; }
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    drawPyramidBackgroundSlices();
+
+    const titleEl = document.getElementById('chartTitle');
+    const title = titleEl ? titleEl.value.trim() : '';
+    if (title) {
+      ctx.font = 'bold 16px Georgia, "Times New Roman", serif';
+      ctx.fillStyle = '#1e2a3a';
+      ctx.textAlign = 'center';
+      ctx.fillText(title, canvas.width / 2, 28);
+    }
+
+    const ls = document.getElementById('lineStyle');
+    const isStraight = ls ? ls.value === 'straight' : true;
+    
+    const st = document.getElementById('showTrophicLevels');
+    const isMono = st ? !st.checked : false;
+    
+    const arrowColor = isMono ? '#1e2a3a' : '#475569';
+    
+    const fs = document.getElementById('fontSizeInput');
+    const fontSize = fs ? parseInt(fs.value) || 9 : 9;
+
+    if (!drawPyramidBackground) {
+      edges.forEach(e => {
+        const s = nodes.find(n => n.id === e.sourceId);
+        const t = nodes.find(n => n.id === e.targetId);
+        if (s && t) {
+          if (s.id === t.id) {
+            drawSelfLoop(s, arrowColor);
+          } else {
+            drawArrow(s.x, s.y, t.x, t.y, isStraight, arrowColor);
+          }
+        }
+      });
+
+      if (isConnectingMode && connectSourceId) {
+        const s = nodes.find(n => n.id === connectSourceId);
+        if (s) {
+          ctx.strokeStyle = '#3266ad';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 5]);
+          ctx.beginPath();
+          ctx.moveTo(s.x, s.y);
+          ctx.lineTo(mouseX, mouseY);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
+    }
+
+    nodes.forEach(n => {
+      if (drawPyramidBackground && (n.role === 'none' || n.role === 'decomposer')) return;
+      
+      let colors = ROLE_COLORS[n.role] || ROLE_COLORS['none'];
+      if (isMono) {
+        colors = { bg: '#ffffff', border: '#1e2a3a', text: '#1e2a3a', label: colors.label };
+      }
+      
+      if (n.role === 'sun') {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, halfSize, 0, 2 * Math.PI);
+        ctx.fillStyle = isMono ? '#ffffff' : '#fffbe4';
+        ctx.fill();
+
+        // Crop optional sun images into the circular bounds seamlessly
+        if (n.imgObj) {
+           ctx.save();
+           ctx.clip();
+           const scale = Math.max((halfSize*2) / n.imgObj.width, (halfSize*2) / n.imgObj.height);
+           const iw = n.imgObj.width * scale;
+           const ih = n.imgObj.height * scale;
+           ctx.drawImage(n.imgObj, n.x - iw/2, n.y - ih/2, iw, ih);
+           ctx.restore();
+        }
+        
+        ctx.lineWidth = (n.id === selectedId || n.id === connectSourceId) ? 3.5 : 2;
+        ctx.strokeStyle = (n.id === selectedId || n.id === connectSourceId) ? '#d32f2f' : (isMono ? '#1e2a3a' : '#f59e0b');
+        ctx.stroke();
+
+        ctx.strokeStyle = (n.id === selectedId || n.id === connectSourceId) ? '#d32f2f' : (isMono ? '#1e2a3a' : '#f59e0b');
+        ctx.lineWidth = 2;
+        for(let i=0; i<8; i++) {
+           let angle = (i * Math.PI) / 4;
+           ctx.beginPath();
+           ctx.moveTo(n.x + Math.cos(angle)*(halfSize + 6), n.y + Math.sin(angle)*(halfSize + 6));
+           ctx.lineTo(n.x + Math.cos(angle)*(halfSize + 16), n.y + Math.sin(angle)*(halfSize + 16));
+           ctx.stroke();
+        }
+        
+        if (!n.imgObj) {
+           ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
+           ctx.textAlign = 'center';
+           ctx.textBaseline = 'middle';
+           ctx.fillStyle = isMono ? '#1e2a3a' : '#b45309';
+           ctx.fillText(n.name, n.x, n.y);
+        } else {
+           ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
+           ctx.textAlign = 'center';
+           ctx.textBaseline = 'middle';
+           ctx.fillStyle = colors.text;
+           
+           const boxTop = n.y + halfSize + 22;
+           const lw = ctx.measureText(n.name).width;
+           ctx.fillStyle = colors.bg;
+           ctx.fillRect(n.x - lw/2 - 6, boxTop - 10, lw + 12, 20);
+           ctx.lineWidth = 1;
+           ctx.strokeStyle = colors.border;
+           ctx.strokeRect(n.x - lw/2 - 6, boxTop - 10, lw + 12, 20);
+           
+           ctx.fillStyle = isMono ? '#1e2a3a' : '#b45309';
+           ctx.fillText(n.name, n.x, boxTop);
+        }
+        ctx.restore();
+        return; 
+      }
+
+      // Render standard organism bounds
+      ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      const words = n.name.split(' ');
+      const approxCharWidth = Math.max(fontSize * 0.55, 1); 
+      const wrapLimit = n.imgObj ? (nodeSize * 1.5) : (nodeSize - 10);
+      const maxChars = Math.floor(Math.max(wrapLimit, 10) / approxCharWidth);
+      
+      let lines = [];
+      if (words.length > 1 && n.name.length > maxChars) {
+        lines.push(words.slice(0, Math.ceil(words.length/2)).join(' '));
+        lines.push(words.slice(Math.ceil(words.length/2)).join(' '));
+      } else {
+        lines.push(n.name);
+      }
+
+      let textMaxW = 0;
+      lines.forEach(l => {
+        const lw = ctx.measureText(l).width;
+        if (lw > textMaxW) textMaxW = lw;
+      });
+      const lineSpacing = fontSize * 1.2;
+      const textTotalH = lines.length * lineSpacing;
+
+      if (drawPyramidBackground) {
+          // Dynamic compact rectangle for pyramid layout
+          let boxW = 0, boxH = 0;
+          let iw = 0, ih = 0;
+          
+          if (n.imgObj) {
+            const scale = Math.min(nodeSize / n.imgObj.width, nodeSize / n.imgObj.height); 
+            iw = n.imgObj.width * scale;
+            ih = n.imgObj.height * scale;
+            boxW = Math.max(iw, textMaxW) + 24;
+            boxH = ih + textTotalH + 20;
+          } else {
+            boxW = textMaxW + 28;
+            boxH = textTotalH + 20;
+          }
+
+          const boxLeft = n.x - boxW / 2;
+          const boxTop = n.y - boxH / 2;
+
+          ctx.save();
+          ctx.fillStyle = colors.bg;
+          ctx.fillRect(boxLeft, boxTop, boxW, boxH);
+          ctx.lineWidth = (n.id === selectedId) ? 3.5 : 2;
+          ctx.strokeStyle = (n.id === selectedId) ? '#d32f2f' : colors.border;
+          ctx.strokeRect(boxLeft, boxTop, boxW, boxH);
+
+          if (n.imgObj) {
+             ctx.drawImage(n.imgObj, n.x - iw/2, boxTop + 8, iw, ih);
+             ctx.fillStyle = colors.text;
+             lines.forEach((l, i) => {
+               ctx.fillText(l, n.x, boxTop + 8 + ih + 6 + (i + 0.5) * lineSpacing);
+             });
+          } else {
+             ctx.fillStyle = colors.text;
+             lines.forEach((l, i) => {
+               const startY = n.y - textTotalH/2 + (i + 0.5) * lineSpacing;
+               ctx.fillText(l, n.x, startY);
+             });
+          }
+          ctx.restore();
+      } else {
+          // Original fixed-square logic for web layout
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(n.x - halfSize, n.y - halfSize, nodeSize, nodeSize);
+          
+          if (n.imgObj) {
+            ctx.fillStyle = colors.bg;
+            ctx.fill();
+            ctx.clip();
+            const scale = Math.max(nodeSize / n.imgObj.width, nodeSize / n.imgObj.height);
+            const iw = n.imgObj.width * scale;
+            const ih = n.imgObj.height * scale;
+            ctx.drawImage(n.imgObj, n.x - iw/2, n.y - ih/2, iw, ih);
+          } else {
+            ctx.fillStyle = colors.bg;
+            ctx.fill();
+          }
+          ctx.restore();
+
+          ctx.lineWidth = (n.id === selectedId || n.id === connectSourceId) ? 3.5 : 2;
+          ctx.strokeStyle = (n.id === selectedId || n.id === connectSourceId) ? '#d32f2f' : colors.border;
+          ctx.strokeRect(n.x - halfSize, n.y - halfSize, nodeSize, nodeSize);
+
+          if (n.imgObj) {
+             const boxTop = n.y + halfSize + 4;
+             ctx.fillStyle = colors.bg;
+             ctx.fillRect(n.x - textMaxW/2 - 6, boxTop, textMaxW + 12, textTotalH + 8);
+             ctx.lineWidth = 1;
+             ctx.strokeStyle = colors.border;
+             ctx.strokeRect(n.x - textMaxW/2 - 6, boxTop, textMaxW + 12, textTotalH + 8);
+             
+             ctx.fillStyle = colors.text;
+             lines.forEach((l, i) => {
+               ctx.fillText(l, n.x, boxTop + 4 + (i + 0.5) * lineSpacing);
+             });
+          } else {
+             ctx.fillStyle = colors.text;
+             lines.forEach((l, i) => {
+               const startY = n.y - textTotalH/2 + (i + 0.5) * lineSpacing;
+               ctx.fillText(l, n.x, startY);
+             });
+          }
+      }
+    });
+
+    const legendBtn = document.getElementById('showLegend');
+    if (legendBtn && legendBtn.checked && !isMono) {
+      drawLegendBox(isMono);
+    }
+  } catch(e) {
+    console.error("Canvas rendering failed safely: ", e);
   }
 }
 
 function drawLegendBox(isMono) {
   const kw = 160;
-  const roles = ['producer', 'primary', 'secondary', 'tertiary', 'decomposer', 'none'];
+  const roles = ['sun', 'producer', 'primary', 'secondary', 'tertiary', 'decomposer', 'none'];
   const kh = 25 + (roles.length * 16);
   const kx = canvas.width - kw - 16;
-  const ky = canvas.height - kh - 16;
+  const ky = 20; 
   
   ctx.save();
   ctx.fillStyle = '#f8fafc';
@@ -1168,7 +1597,7 @@ function drawLegendBox(isMono) {
   ctx.fillText('TROPHIC KEY', kx + 10, ky + 14);
 
   roles.forEach((r, idx) => {
-    let c = ROLE_COLORS[r];
+    let c = ROLE_COLORS[r] || ROLE_COLORS['none'];
     if (isMono) {
       c = { bg: '#ffffff', border: '#1e2a3a', text: '#1e2a3a', label: c.label };
     }
@@ -1192,81 +1621,48 @@ function drawLegendBox(isMono) {
 }
 
 /* ════════════════════════════════════════════════
-   PRESET LOADERS & EXPORT ENGINE
+   PRESET LOADERS (Hidden from UI, retained for setup)
    ════════════════════════════════════════════════ */
 function loadPreset(type) {
   historyStack = [];
   document.getElementById('btnUndo').disabled = true;
+  drawPyramidBackground = false;
 
   nodes = [];
   edges = [];
   nextId = 1;
   selectedId = null;
   if (isConnectingMode) toggleConnectMode();
-  document.getElementById('chartTitle').value = '';
+  
+  document.getElementById('chartTitle').value = 'Forest Food Web';
   document.getElementById('nodeSizeInput').value = 76;
-  document.getElementById('fontSizeInput').value = 11;
+  document.getElementById('fontSizeInput').value = 9;
   updateNodeSize();
 
   const cx = canvas.width / 2;
   const cy = canvas.height / 2;
 
-  if (type === 'chain') {
-    document.getElementById('chartTitle').value = 'Simple Food Chain';
-    const n1 = createNode('Grass', 'producer', cx - 200, cy);
-    const n2 = createNode('Rabbit', 'primary', cx, cy);
-    const n3 = createNode('Fox', 'secondary', cx + 200, cy);
-    addEdge(n1.id, n2.id);
-    addEdge(n2.id, n3.id);
-  } else if (type === 'web') {
-    document.getElementById('chartTitle').value = 'Forest Food Web';
-    const grass = createNode('Grasses', 'producer', cx - 180, cy + 100);
-    const berry = createNode('Berry Bush', 'producer', cx + 180, cy + 100);
-    
-    const mouse = createNode('Mouse', 'primary', cx - 100, cy - 20);
-    const deer = createNode('Deer', 'primary', cx + 100, cy - 10);
-    
-    const snake = createNode('Snake', 'secondary', cx - 140, cy - 140);
-    const hawk = createNode('Hawk', 'tertiary', cx + 50, cy - 170);
+  const grass = createNode('Grasses', 'producer', cx - 180, cy + 100);
+  const berry = createNode('Berry Bush', 'producer', cx + 180, cy + 100);
+  
+  const mouse = createNode('Mouse', 'primary', cx - 100, cy - 20);
+  const deer = createNode('Deer', 'primary', cx + 100, cy - 10);
+  
+  const snake = createNode('Snake', 'secondary', cx - 140, cy - 140);
+  const hawk = createNode('Hawk', 'tertiary', cx + 50, cy - 170);
 
-    addEdge(grass.id, mouse.id);
-    addEdge(grass.id, deer.id);
-    addEdge(berry.id, mouse.id);
-    addEdge(berry.id, deer.id);
-    
-    addEdge(mouse.id, snake.id);
-    addEdge(mouse.id, hawk.id);
-    addEdge(snake.id, hawk.id);
-  } else if (type === 'pyramid') {
-    document.getElementById('chartTitle').value = 'Ecological Energy Pyramid';
-    // Stacked vertically: Producers at the bottom, Tertiary at the top
-    const prod = createNode('Producers (10,000J)', 'producer', cx, cy + 160);
-    const primary = createNode('Primary Cons. (1,000J)', 'primary', cx, cy + 60);
-    const secondary = createNode('Secondary Cons. (100J)', 'secondary', cx, cy - 40);
-    const tertiary = createNode('Tertiary Cons. (10J)', 'tertiary', cx, cy - 140);
-
-    addEdge(prod.id, primary.id);
-    addEdge(primary.id, secondary.id);
-    addEdge(secondary.id, tertiary.id);
-    
-    // Auto-enable trophic colors for pyramids so the levels stand out immediately
-    document.getElementById('showTrophicLevels').checked = true;
-    toggleTrophicLevels();
-  }
+  addEdge(grass.id, mouse.id);
+  addEdge(grass.id, deer.id);
+  addEdge(berry.id, mouse.id);
+  addEdge(berry.id, deer.id);
+  
+  addEdge(mouse.id, snake.id);
+  addEdge(mouse.id, hawk.id);
+  addEdge(snake.id, hawk.id);
 
   selectNode(null);
+  updateEditState();
   render();
-}
-
-function clearWeb() {
-  if (confirm('Clear entire food web?')) {
-    saveState();
-    nodes = [];
-    edges = [];
-    selectNode(null);
-    document.getElementById('chartTitle').value = '';
-    render();
-  }
 }
 
 function getTimestamp() {
